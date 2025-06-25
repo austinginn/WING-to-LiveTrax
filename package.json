@@ -1,0 +1,55 @@
+{
+  "name": "wing-to-livetrax",
+  "productName": "Wing to LiveTrax",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "npm run dev:vue & npm run dev:electron",
+    "dev:vue": "vite",
+    "dev:electron": "wait-on http://localhost:5173 && electron .",
+    "build:frontend": "vite build",
+    "build:package": "electron-builder install-app-deps && electron-builder --mac --arm64",
+    "build": "npm run build:frontend && npm run build:package",
+    "preview": "vite preview"
+  },
+  "build": {
+    "asar": true,
+    "compression": "maximum",
+    "appId": "com.aginn.winglivetrax",
+    "files": [
+      "dist/**",
+      "electron/**/*",
+      "!**/*.map",
+      "!**/__tests__/**",
+      "!**/*.ts",
+      "!**/docs/**",
+      "!**/locale/**"
+    ],
+    "mac": {
+      "identity": null,
+      "icon": "./electron/icons/icon.icns",
+      "target": [
+        "dir"
+      ],
+      "extendInfo": {
+        "CFBundleIconFile": "icon",
+        "CFBundleIconName": "AppIcon"
+      }
+    }
+  },
+  "dependencies": {
+    "node-osc": "^9.1.5",
+    "vue": "^3.5.13"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.3",
+    "electron": "^36.5.0",
+    "electron-builder": "^26.0.12",
+    "electron-icon-maker": "^0.0.5",
+    "rollup-plugin-visualizer": "^6.0.3",
+    "vite": "^6.3.5",
+    "wait-on": "^8.0.3"
+  }
+}
