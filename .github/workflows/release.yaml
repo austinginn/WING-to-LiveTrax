@@ -1,51 +1,51 @@
 name: Build & Publish Release
 
+# trigger on a pushed tag like “v1.0.0”
 on:
-  # Trigger on a pushed git tag like “v1.2.3”
   push:
     tags:
       - 'v*.*.*'
 
+# give the GITHUB_TOKEN permission to push tags, create releases, upload assets…
+permissions:
+  contents: write       # ← allow write access to repo contents (releases are under “contents”)
+  packages: write       # ← if you also ever want to push packages
+  id-token: write       # ← sometimes needed for OIDC but not strictly here
+
 jobs:
   build:
-    # use a matrix so we run on each OS
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [macos-latest, windows-latest, ubuntu-latest]
-    runs-on: ${{ matrix.os }}
 
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0      # we need tags
+          fetch-depth: 0
 
-      - name: Use Node.js
+      - name: Install Node.js & deps
         uses: actions/setup-node@v3
         with:
           node-version: '18.x'
           cache: 'npm'
-
       - run: npm ci
 
-      - name: Frontend build
+      - name: Build Frontend
         run: npm run build:frontend
 
-      - name: Package app
-        # on each runner pick the right script
+      - name: Package App
         run: |
           case "${{ matrix.os }}" in
-            macOS)   npm run build:mac   ;;
-            Windows) npm run build:win   ;;
-            Linux)   npm run build:linux ;;
+            macos-latest)   npm run build:mac   ;;
+            windows-latest) npm run build:win   ;;
+            ubuntu-latest)  npm run build:linux ;;
           esac
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload to GitHub Release
-        # softprops action will attach whatever is in electron-builder’s dist output
+      - name: Create / Upload GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          files: dist/**/*
-
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          files: dist/**/*   # adjust if your artifacts live somewhere else
