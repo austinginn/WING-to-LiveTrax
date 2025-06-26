@@ -1,5 +1,7 @@
 {
   "name": "wing-to-livetrax",
+  "description": "Behringer WING to LiveTrax OSC Bridge",
+  "author": "Austin Ginn <austinleeginn@gmai.com>",
   "productName": "Wing to LiveTrax",
   "private": true,
   "version": "1.0.0",
@@ -49,6 +51,7 @@
     },
     "linux": {
       "icon": "./electron/icons/icon.png",
+      "maintainer": "Austin Ginn <austinleeginn@gmail.com>",
       "target": [
         "AppImage",
         "deb"
