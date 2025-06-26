@@ -1,16 +1,13 @@
 name: Build & Publish Release
 
-# trigger on a pushed tag like “v1.0.0”
 on:
   push:
     tags:
       - 'v*.*.*'
 
-# give the GITHUB_TOKEN permission to push tags, create releases, upload assets…
 permissions:
-  contents: write       # ← allow write access to repo contents (releases are under “contents”)
-  packages: write       # ← if you also ever want to push packages
-  id-token: write       # ← sometimes needed for OIDC but not strictly here
+  contents: write
+  packages: write
 
 jobs:
   build:
@@ -20,21 +17,26 @@ jobs:
         os: [macos-latest, windows-latest, ubuntu-latest]
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Install Node.js & deps
+      - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18.x'
-          cache: 'npm'
-      - run: npm ci
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
 
       - name: Build Frontend
         run: npm run build:frontend
 
-      - name: Package App
+      - name: Package App (all platforms)
+        # Force Bash even on Windows
+        shell: bash
         run: |
           case "${{ matrix.os }}" in
             macos-latest)   npm run build:mac   ;;
@@ -48,4 +50,4 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          files: dist/**/*   # adjust if your artifacts live somewhere else
+          files: dist/**/*
