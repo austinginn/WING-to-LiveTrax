@@ -2,7 +2,7 @@
   "name": "wing-to-livetrax",
   "productName": "Wing to LiveTrax",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.0.1",
   "type": "module",
   "main": "electron/main.js",
   "scripts": {
@@ -12,7 +12,8 @@
     "build:frontend": "vite build",
     "build:package": "electron-builder install-app-deps && electron-builder --mac --arm64",
     "build": "npm run build:frontend && npm run build:package",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "release": "standard-version"
   },
   "build": {
     "asar": true,
@@ -49,6 +50,7 @@
     "electron-builder": "^26.0.12",
     "electron-icon-maker": "^0.0.5",
     "rollup-plugin-visualizer": "^6.0.3",
+    "standard-version": "^9.5.0",
     "vite": "^6.3.5",
     "wait-on": "^8.0.3"
   }
