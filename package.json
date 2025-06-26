@@ -2,7 +2,7 @@
   "name": "wing-to-livetrax",
   "productName": "Wing to LiveTrax",
   "private": true,
-  "version": "0.0.1",
+  "version": "1.0.0",
   "type": "module",
   "main": "electron/main.js",
   "scripts": {
