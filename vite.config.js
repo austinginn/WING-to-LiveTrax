@@ -8,6 +8,10 @@ export default defineConfig({
     vue(),
     visualizer({ open: true }) // Optional: for bundle analysis
   ],
+  define: {
+    // grab the version from package.json
+    'import.meta.env.VITE_APP_VERSION': JSON.stringify(process.env.npm_package_version)
+  },
   root: '.',      
   base: './',     
   build: {

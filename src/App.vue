@@ -6,7 +6,8 @@
           WING to LiveTrax Sync
         </h1>
         <div class="info-button" @mouseenter="showTooltip = true" @mouseleave="showTooltip = false">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="10"></circle>
             <line x1="12" y1="16" x2="12" y2="12"></line>
             <line x1="12" y1="8" x2="12.01" y2="8"></line>
@@ -55,7 +56,8 @@
           <!-- Transfer Names Button (Moved Up) -->
           <div class="button-group">
             <button @click="transferNames" class="action-button transfer-button">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M17 1l4 4-4 4"></path>
                 <path d="M3 11V9a4 4 0 014-4h14"></path>
                 <path d="M7 23l-4-4 4-4"></path>
@@ -70,19 +72,12 @@
             <label class="input-label">
               <span>Scheduled Recording</span>
               <div class="time-input-group">
-                <input 
-                  v-model="scheduledTime" 
-                  type="time" 
-                  class="time-input"
-                  :min="currentTime"
-                  @change="validateScheduledTime"
-                >
-                <button 
-                  @click="scheduleRecording" 
-                  class="action-button schedule-button"
-                  :disabled="!scheduledTimeValid"
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <input v-model="scheduledTime" type="time" class="time-input" :min="currentTime"
+                  @change="validateScheduledTime">
+                <button @click="scheduleRecording" class="action-button schedule-button"
+                  :disabled="!scheduledTimeValid">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10"></circle>
                     <polyline points="12 6 12 12 16 14"></polyline>
                   </svg>
@@ -93,7 +88,8 @@
             <div v-if="scheduledRecording" class="scheduled-info">
               <span>Recording scheduled for {{ scheduledTime }} ({{ timeRemaining }})</span>
               <button @click="cancelScheduledRecording" class="cancel-schedule-button">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <line x1="18" y1="6" x2="6" y2="18"></line>
                   <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>
@@ -105,14 +101,16 @@
           <div class="button-group">
             <div class="record-buttons">
               <button @click="startRecording" class="action-button record-button">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="12" cy="12" r="10"></circle>
                   <circle cx="12" cy="12" r="3"></circle>
                 </svg>
                 Record
               </button>
               <button @click="stopRecording" class="action-button stop-button">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="6" y="6" width="12" height="12"></rect>
                 </svg>
                 Stop
@@ -120,6 +118,12 @@
             </div>
           </div>
         </div>
+        <footer class="floating-footer">
+          Created by <a href="mailto:austinleeginn@gmail.com">Austin Ginn</a><br>
+          <a href='https://ko-fi.com/M4M81985YD' target='_blank'><img height='36' style='border:0px;height:36px;'
+              src='https://storage.ko-fi.com/cdn/kofi3.png?v=6' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
+              <p>v {{version}} </p>
+        </footer>
       </div>
 
       <div class="log-panel">
@@ -127,14 +131,16 @@
           <h2>Activity Log</h2>
           <div class="log-actions">
             <button @click="copyLogs" class="copy-button" title="Copy logs to clipboard">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                 <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"></path>
               </svg>
               Copy
             </button>
             <button @click="clearLog" class="clear-button">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M3 6h18"></path>
                 <path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"></path>
               </svg>
@@ -152,6 +158,7 @@
       </div>
     </div>
   </div>
+
 </template>
 
 <script setup>
@@ -168,6 +175,7 @@ const scheduledRecording = ref(null)
 const currentTime = ref('')
 const scheduledTimeValid = ref(false)
 const checkInterval = ref(null)
+const version = ref(import.meta.env.VITE_APP_VERSION);
 
 const groups = ['USB', 'CRD', 'MOD']
 
@@ -208,7 +216,7 @@ function updateCurrentTime() {
   const hours = String(now.getHours()).padStart(2, '0')
   const minutes = String(now.getMinutes()).padStart(2, '0')
   currentTime.value = `${hours}:${minutes}`
-  
+
   // Check if scheduled recording should start
   if (scheduledRecording.value && scheduledTime.value === currentTime.value) {
     startRecording()
@@ -222,29 +230,29 @@ function validateScheduledTime() {
     scheduledTimeValid.value = false
     return
   }
-  
+
   const [scheduledHours, scheduledMinutes] = scheduledTime.value.split(':').map(Number)
   const [currentHours, currentMinutes] = currentTime.value.split(':').map(Number)
-  
-  scheduledTimeValid.value = (scheduledHours > currentHours) || 
-                           (scheduledHours === currentHours && scheduledMinutes > currentMinutes)
+
+  scheduledTimeValid.value = (scheduledHours > currentHours) ||
+    (scheduledHours === currentHours && scheduledMinutes > currentMinutes)
 }
 
 function scheduleRecording() {
   if (!scheduledTimeValid.value) return
-  
+
   // Cancel any existing scheduled recording
   if (scheduledRecording.value) {
     addLog(`Cancelled previous scheduled recording (was ${scheduledRecording.value.time})`)
     stopCheckInterval()
   }
-  
+
   scheduledRecording.value = {
     time: scheduledTime.value,
     timestamp: Date.now()
   }
   addLog(`Recording scheduled for ${scheduledTime.value}`)
-  
+
   // Start checking every second when close to scheduled time
   const [scheduledHours, scheduledMinutes] = scheduledTime.value.split(':').map(Number)
   const now = new Date()
@@ -252,7 +260,7 @@ function scheduleRecording() {
   targetTime.setHours(scheduledHours)
   targetTime.setMinutes(scheduledMinutes)
   targetTime.setSeconds(0)
-  
+
   const diffMs = targetTime - now
   if (diffMs < 5 * 60 * 1000) { // If within 5 minutes
     startCheckInterval()
@@ -282,18 +290,18 @@ function stopCheckInterval() {
 
 const timeRemaining = computed(() => {
   if (!scheduledRecording.value) return ''
-  
+
   const now = new Date()
   const [scheduledHours, scheduledMinutes] = scheduledTime.value.split(':').map(Number)
-  
+
   const targetTime = new Date()
   targetTime.setHours(scheduledHours)
   targetTime.setMinutes(scheduledMinutes)
   targetTime.setSeconds(0)
-  
+
   const diffMs = targetTime - now
   const diffMins = Math.round(diffMs / 60000)
-  
+
   if (diffMins <= 0) {
     return 'now'
   } else if (diffMins < 60) {
@@ -319,7 +327,7 @@ onMounted(() => {
     clearInterval(timer)
     stopCheckInterval()
   })
-  
+
   // subscribe to back-end logs
   window.electronAPI.on('log', msg => {
     addLog(msg)
@@ -374,7 +382,8 @@ function stopRecording() {
   padding: 0;
 }
 
-html, body {
+html,
+body {
   height: 100%;
   overflow: hidden;
 }
@@ -698,7 +707,8 @@ body {
   gap: 0.75rem;
 }
 
-.copy-button, .clear-button {
+.copy-button,
+.clear-button {
   display: flex;
   align-items: center;
   gap: 0.375rem;
@@ -724,7 +734,8 @@ body {
   color: var(--danger);
 }
 
-.copy-button svg, .clear-button svg {
+.copy-button svg,
+.clear-button svg {
   flex-shrink: 0;
 }
 
@@ -773,7 +784,32 @@ body {
   }
 }
 
-.control-content > .button-group:not(:last-child) {
+.control-content>.button-group:not(:last-child) {
   margin-bottom: 1.25rem;
+}
+
+.floating-footer {
+  bottom: 0;
+  color: #d7d7d7;
+  text-align: center;
+  padding: 10px 20px;
+  font-size: 14px;
+  border-top-left-radius: 10px;
+  font-weight: Bold;
+}
+
+.floating-footer a {
+  color: #d7d7d7;
+  text-decoration: underline;
+}
+
+.floating-footer p {
+  color: #d7d7d7;
+  font-size: 10px;
+}
+
+a:hover {
+  text-decoration: none;
+  color: #72a4f2;
 }
 </style>

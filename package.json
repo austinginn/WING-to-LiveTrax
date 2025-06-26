@@ -13,7 +13,12 @@
     "build:package": "electron-builder install-app-deps && electron-builder --mac --arm64",
     "build": "npm run build:frontend && npm run build:package",
     "preview": "vite preview",
-    "release": "standard-version"
+    "release": "standard-version",
+    "build:mac": "electron-builder --mac --arm64 --x64",
+    "build:win": "electron-builder --win --ia32 --x64",
+    "build:linux": "electron-builder --linux --x64",
+    "build:all": "npm run build:frontend && npm run build:mac && npm run build:win && npm run build:linux",
+    "release:ci": "npm run build:all -- --publish always"
   },
   "build": {
     "asar": true,
@@ -29,15 +34,25 @@
       "!**/locale/**"
     ],
     "mac": {
-      "identity": null,
       "icon": "./electron/icons/icon.icns",
       "target": [
-        "dir"
-      ],
-      "extendInfo": {
-        "CFBundleIconFile": "icon",
-        "CFBundleIconName": "AppIcon"
-      }
+        "dmg",
+        "zip"
+      ]
+    },
+    "win": {
+      "icon": "./electron/icons/icon.ico",
+      "target": [
+        "nsis",
+        "zip"
+      ]
+    },
+    "linux": {
+      "icon": "./electron/icons/icon.png",
+      "target": [
+        "AppImage",
+        "deb"
+      ]
     }
   },
   "dependencies": {
