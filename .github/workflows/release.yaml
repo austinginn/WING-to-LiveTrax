@@ -50,4 +50,8 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          files: dist/**/*
+          files: |
+            dist/*.dmg
+            dist/*.zip
+            dist/*.AppImage
+            dist/*.deb
