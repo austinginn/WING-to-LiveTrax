@@ -1,6 +1,6 @@
 # WING to LiveTrax
 
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/M4M81985YD)
+
 
 ## Description
 
@@ -27,24 +27,19 @@ WING to LiveTrax lets you synchronize your WING output group source names direct
 
 6. **Update & Donate**  
    - Check back on the [Releases](https://github.com/austinginn/WING-to-LiveTrax/releases) page for updates.  
-   - If you find Wing to LiveTrax useful, you can support future development via Ko‑fi: [Donate](https://ko-fi.com/M4M81985YD).
+   - If you find Wing to LiveTrax useful, you can support future development via Ko‑fi:
 
-## For Nerds
+   [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/M4M81985YD)
+
+## Notes From Austin
+Wing to LiveTrax is currently built with Electron and Vue to enable rapid prototyping and quick iteration, which results in a larger app footprint. Once the core functionality stabilizes and only minor updates remain, I plan to port the app to a more lightweight Rust-based framework (e.g., Tauri), reducing the final package size to <15 MB.
 
 - **Built With:**  
-  - ⚡ Electron v36.5.0  
-  - 🌐 Vue 3 + Vite  
-  - 🔌 node-osc for UDP/OSC messaging
+  - Electron  
+  - Vue 3 + Vite  
+- **TODO:**  
+  - Persist last used WING IP 
 
-- **Protocol Details:**  
-  - Local OSC server on **UDP 8000** (prefix `/%8000`).  
-  - Yamaha WING listens on **UDP 2223** (xRemote).  
-  - Nuendo LiveTrax listens on **UDP 3819**.
-
-- **Versioning & CI:**  
-  - Semantic versioning via **standard-version**.  
-  - Version injected into UI from `import.meta.env.VITE_APP_VERSION`.  
-  - Automated macOS/Windows/Linux builds & GitHub Releases via GitHub Actions and `softprops/action-gh-release@v1`.
 
 - **Packaging Targets:**  
   - macOS: Universal DMG & ZIP  
