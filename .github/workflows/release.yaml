@@ -28,42 +28,49 @@ jobs:
           node-version: '18.x'
           cache: npm
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build frontend
-        run: npm run build:frontend
-
-      - name: Decode Signing Certificate
+      - name: Decode Apple Developer P12
         if: runner.os == 'macOS'
+        env:
+          CERT_P12_B64: ${{ secrets.APPLE_CERT_P12 }}
         run: |
           mkdir -p build
-          echo "${{ secrets.APPLE_CERT_P12 }}" | openssl base64 -d > build/developer-id.p12
+          # Decode base64 keychain P12 into a file
+          printf '%s' "$CERT_P12_B64" | openssl base64 -A -d -out build/developer-id.p12
 
-      - name: Package App
-        shell: bash
+      - name: Inspect P12 Validity
+        if: runner.os == 'macOS'
         env:
-          GH_TOKEN:           ${{ secrets.GITHUB_TOKEN }}
-          CSC_LINK:           "./build/developer-id.p12"
+          P12_PASS: ${{ secrets.APPLE_CERT_PASSWORD }}
+        run: |
+          # Verify this is a valid PKCS#12
+          openssl pkcs12 -info -in build/developer-id.p12 -passin pass:$P12_PASS -noout
+
+      - name: Install dependencies & Build Frontend
+        run: |
+          npm ci
+          npm run build:frontend
+
+      - name: Package, Sign & Notarize macOS
+        if: runner.os == 'macOS'
+        env:
+          CSC_LINK:           build/developer-id.p12
           CSC_KEY_PASSWORD:   ${{ secrets.APPLE_CERT_PASSWORD }}
           APPLE_ID:           ${{ secrets.APPLE_ID }}
           APPLE_ID_PASSWORD:  ${{ secrets.APPLE_ID_PASS }}
+          GH_TOKEN:           ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
-            echo "==> Building for macOS Intel..."
-            npm run build:macIntel
-            echo "==> Building for macOS ARM..."
-            npm run build:macArm
-          elif [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            echo "==> Building for Windows..."
-            npm run build:win
-          elif [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
-            echo "==> Building for Linux..."
-            npm run build:linux
-          else
-            echo "❌ Unsupported OS: ${{ matrix.os }}"
-            exit 1
-          fi
+          echo "==> Building for macOS Intel..."
+          npm run build:macIntel
+          echo "==> Building for macOS ARM..."
+          npm run build:macArm
+
+      - name: Package Windows
+        if: runner.os == 'windows-latest'
+        run: npm run build:win
+
+      - name: Package Linux
+        if: runner.os == 'ubuntu-latest'
+        run: npm run build:linux
 
       - name: Create / Upload GitHub Release
         uses: softprops/action-gh-release@v1
