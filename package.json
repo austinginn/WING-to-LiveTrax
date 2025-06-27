@@ -41,8 +41,8 @@
         "dmg"
       ],
       "hardenedRuntime": true,
-      "entitlements": "build/entitlements.mac.plist",
-      "entitlementsInherit": "build/entitlements.mac.plist",
+      "entitlements": "electron/build/entitlements.mac.plist",
+      "entitlementsInherit": "electron/build/entitlements.mac.plist",
       "identity": "Austin Ginn (P76H6523Q4)"
     },
     "win": {
