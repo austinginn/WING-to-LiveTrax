@@ -28,38 +28,23 @@ jobs:
           node-version: '18.x'
           cache: npm
 
-      - name: Import Apple Signing Certificate
-        if: ${{ matrix.os == 'macos-latest' }}
-        env:
-          P12_BASE64:   ${{ secrets.APPLE_CERT_P12 }}
-          P12_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
-        run: |
-          # Unlock the default login keychain
-          security unlock-keychain -p "" ~/Library/Keychains/login.keychain-db
+      - name: Install dependencies
+        run: npm ci
 
-          # Ensure build directory exists
+      - name: Build frontend
+        run: npm run build:frontend
+
+      - name: Decode Signing Certificate
+        if: runner.os == 'macOS'
+        run: |
           mkdir -p build
-
-          # Decode the base64 P12 into a .p12 file
-          printf '%s' "$P12_BASE64" | openssl base64 -d -out build/developer-id.p12
-
-          # Import into the login keychain
-          security import build/developer-id.p12 \
-            -k ~/Library/Keychains/login.keychain-db \
-            -P "$P12_PASSWORD" \
-            -T /usr/bin/codesign \
-            -A
-
-      - name: Install dependencies & Build Frontend
-        run: |
-          npm ci
-          npm run build:frontend
+          echo "${{ secrets.APPLE_CERT_P12 }}" | openssl base64 -d > build/developer-id.p12
 
       - name: Package App
         shell: bash
         env:
           GH_TOKEN:           ${{ secrets.GITHUB_TOKEN }}
-          CSC_LINK:           ${{ secrets.APPLE_CERT_P12 }}
+          CSC_LINK:           "./build/developer-id.p12"
           CSC_KEY_PASSWORD:   ${{ secrets.APPLE_CERT_PASSWORD }}
           APPLE_ID:           ${{ secrets.APPLE_ID }}
           APPLE_ID_PASSWORD:  ${{ secrets.APPLE_ID_PASS }}
