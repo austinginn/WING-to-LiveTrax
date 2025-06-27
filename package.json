@@ -29,6 +29,7 @@
     "files": [
       "dist/**",
       "electron/**/*",
+      "electron/build/**",
       "!**/*.map",
       "!**/__tests__/**",
       "!**/*.ts",
