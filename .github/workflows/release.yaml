@@ -31,12 +31,24 @@ jobs:
       - name: Import Apple Signing Certificate
         if: ${{ matrix.os == 'macos-latest' }}
         env:
-          P12_BASE64:     ${{ secrets.APPLE_CERT_P12 }}
-          P12_PASSWORD:   ${{ secrets.APPLE_CERT_PASSWORD }}
+          P12_BASE64: ${{ secrets.APPLE_CERT_P12 }}
+          P12_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
         run: |
+          # 1) Create a temporary keychain for signing
           security create-keychain -p "" build.keychain
-          security import <(printf '%s' "$P12_BASE64" | base64 --decode) \
-            -k build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign
+
+          # 2) Ensure the build directory exists
+          mkdir -p build
+
+          # 3) Decode the base64 P12 into a .p12 file
+          printf '%s' "$P12_BASE64" | openssl base64 -d -out build/developer-id.p12
+
+          # 4) Import that .p12 into our keychain
+          security import build/developer-id.p12 \
+            -k build.keychain -P "$P12_PASSWORD" \
+            -T /usr/bin/codesign
+
+          # 5) Make this keychain the default so codesign can see it
           security default-keychain -s build.keychain
           security unlock-keychain -p "" build.keychain
 
@@ -48,11 +60,11 @@ jobs:
       - name: Package App
         shell: bash
         env:
-          GH_TOKEN:            ${{ secrets.GITHUB_TOKEN }}
-          CSC_LINK:            ${{ secrets.APPLE_CERT_P12 }}
-          CSC_KEY_PASSWORD:    ${{ secrets.APPLE_CERT_PASSWORD }}
-          APPLE_ID:            ${{ secrets.APPLE_ID }}
-          APPLE_ID_PASSWORD:   ${{ secrets.APPLE_ID_PASS }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_LINK: ${{ secrets.APPLE_CERT_P12 }}
+          CSC_KEY_PASSWORD: ${{ secrets.APPLE_CERT_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASS }}
         run: |
           if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
             echo "==> Building for macOS Intel..."
