@@ -43,7 +43,7 @@
       "hardenedRuntime": true,
       "entitlements": "build/entitlements.mac.plist",
       "entitlementsInherit": "build/entitlements.mac.plist",
-      "identity": "Developer ID Application: Austin Ginn (P76H6523Q4)"
+      "identity": "Austin Ginn (P76H6523Q4)"
     },
     "win": {
       "icon": "./electron/icons/icon.ico",

@@ -28,16 +28,31 @@ jobs:
           node-version: '18.x'
           cache: npm
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Import Apple Signing Certificate
+        if: ${{ matrix.os == 'macos-latest' }}
+        env:
+          P12_BASE64:     ${{ secrets.APPLE_CERT_P12 }}
+          P12_PASSWORD:   ${{ secrets.APPLE_CERT_PASSWORD }}
+        run: |
+          security create-keychain -p "" build.keychain
+          security import <(printf '%s' "$P12_BASE64" | base64 --decode) \
+            -k build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
 
-      - name: Build frontend
-        run: npm run build:frontend
+      - name: Install dependencies & Build Frontend
+        run: |
+          npm ci
+          npm run build:frontend
 
       - name: Package App
         shell: bash
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN:            ${{ secrets.GITHUB_TOKEN }}
+          CSC_LINK:            ${{ secrets.APPLE_CERT_P12 }}
+          CSC_KEY_PASSWORD:    ${{ secrets.APPLE_CERT_PASSWORD }}
+          APPLE_ID:            ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD:   ${{ secrets.APPLE_ID_PASS }}
         run: |
           if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
             echo "==> Building for macOS Intel..."
