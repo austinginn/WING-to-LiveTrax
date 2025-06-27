@@ -17,28 +17,43 @@ jobs:
         os: [macos-latest, windows-latest, ubuntu-latest]
 
     steps:
-      - uses: actions/checkout@v4
-        with: { fetch-depth: 0 }
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - uses: actions/setup-node@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
           node-version: '18.x'
           cache: npm
 
-      - run: npm ci
+      - name: Install dependencies
+        run: npm ci
 
-      - run: npm run build:frontend
+      - name: Build frontend
+        run: npm run build:frontend
 
-      - name: Package App (all platforms)
+      - name: Package App
         shell: bash
-        run: |
-          case "${{ matrix.os }}" in
-            macos-latest)   npm run build:mac   ;;
-            windows-latest) npm run build:win   ;;
-            ubuntu-latest)  npm run build:linux ;;
-          esac
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [[ "${{ matrix.os }}" == "macos-latest" ]]; then
+            echo "==> Building for macOS Intel..."
+            npm run build:macIntel
+            echo "==> Building for macOS ARM..."
+            npm run build:macArm
+          elif [[ "${{ matrix.os }}" == "windows-latest" ]]; then
+            echo "==> Building for Windows..."
+            npm run build:win
+          elif [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+            echo "==> Building for Linux..."
+            npm run build:linux
+          else
+            echo "❌ Unsupported OS: ${{ matrix.os }}"
+            exit 1
+          fi
 
       - name: Create / Upload GitHub Release
         uses: softprops/action-gh-release@v1
