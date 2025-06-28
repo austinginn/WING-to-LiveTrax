@@ -31,13 +31,15 @@ jobs:
           npm ci
           npm install @electron/notarize --save-dev
 
-      - name: Create notarize config
+      - name: Create notarization files
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_ID_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         run: |
-          cat <<EOF > notarize.cjs
+          # Create the hardcoded notarization script
+          cat <<EOF > notarize-hardcoded.cjs
           const { notarize } = require('@electron/notarize');
+          const config = require('./notarize-config.json');
 
           module.exports = async function(context) {
             const { electronPlatformName, appOutDir } = context;  
@@ -48,11 +50,20 @@ jobs:
             await notarize({
               appBundleId: 'com.aginn.winglivetrax',
               appPath: \`\${appOutDir}/\${appName}.app\`,
-              appleId: process.env.APPLE_ID,
-              appleIdPassword: process.env.APPLE_APP_SPECIFIC_PASSWORD,
-              teamId: 'P76H6523Q4' // Your hardcoded Team ID
+              appleId: config.appleId,
+              appleIdPassword: config.appleIdPassword,
+              teamId: config.teamId
             });
           };
+          EOF
+
+          # Create the config file with hardcoded team ID
+          cat <<EOF > notarize-config.json
+          {
+            "appleId": "$APPLE_ID",
+            "appleIdPassword": "$APPLE_APP_SPECIFIC_PASSWORD",
+            "teamId": "P76H6523Q4"
+          }
           EOF
 
       - name: Build frontend
@@ -76,23 +87,28 @@ jobs:
       # BUILD & NOTARIZE
       # ======================
       - name: Build and notarize
-        env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         run: |
           npx electron-builder --mac --arm64 \
             --config.mac.identity="Austin Ginn (P76H6523Q4)" \
             --config.forceCodeSigning=true \
-            --config.afterSign=./notarize.cjs
+            --config.afterSign=./notarize-hardcoded.cjs
 
       # ======================
       # VERIFICATION
       # ======================
       - name: Verify artifacts
         run: |
+          # Verify code signing
           codesign -dv --verbose=4 "./dist/mac-arm64/Wing to LiveTrax.app"
+          
+          # Verify notarization
           spctl -a -vv -t install "./dist/mac-arm64/Wing to LiveTrax.app"
           xcrun stapler validate "./dist/mac-arm64/Wing to LiveTrax.app"
+
+          # Verify DMG contents
+          hdiutil attach "./dist/Wing to LiveTrax.dmg" -mountpoint /Volumes/WingInstaller
+          ls -la /Volumes/WingInstaller
+          hdiutil detach /Volumes/WingInstaller
 
       # ======================
       # PUBLISH RELEASE
