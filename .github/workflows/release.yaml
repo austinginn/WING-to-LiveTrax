@@ -1,23 +1,20 @@
-name: Build and Sign (macOS ARM64)
+name: Build, Sign, and Release
 
 on:
   push:
     tags: ['v*']
 
 jobs:
-  build:
+  release:
     runs-on: macos-latest
     timeout-minutes: 30
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Needed for automatic release notes
 
-      - name: Create ES Module noop script
-        run: |
-          mkdir -p scripts
-          echo "export default async () => {}" > scripts/noop.js
-
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -40,19 +37,16 @@ jobs:
           p12-file-base64: ${{ secrets.MAC_CERTIFICATE }}
           p12-password: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
 
-      - name: Build signed app
+      - name: Build and publish release
+        env:
+          GH_TOKEN: ${{ github.token }}  # Automatic GitHub token
         run: |
           npm run build:macArm -- \
             --config.mac.identity="Austin Ginn (P76H6523Q4)" \
-            --config.afterSign="./scripts/noop.js"
+            --config.publish=github \
+            --config.releaseInfo.releaseType=release
 
       - name: Verify signature
         run: |
           codesign -dv --verbose=4 "./dist/mac-arm64/Wing to LiveTrax.app"
           spctl -a -vv "./dist/mac-arm64/Wing to LiveTrax.app" || true
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: Wing-to-LiveTrax-macOS-ARM64
-          path: ./dist/mac-arm64/Wing to LiveTrax.app
