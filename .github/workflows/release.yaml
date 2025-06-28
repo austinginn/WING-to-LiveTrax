@@ -1,4 +1,3 @@
-# .github/workflows/release.yml
 name: Build, Sign, and Release
 
 on:
@@ -14,13 +13,13 @@ jobs:
       contents: write
 
     steps:
-      # 1) Checkout your repo with full history
+      # 1) Checkout your repository
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # 2) Setup Node.js and cache node_modules
+      # 2) Setup Node.js and cache dependencies
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -30,16 +29,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # 3) Import your signing cert into its own keychain
+      # 3) Import your Apple code-signing certificate
       - name: Import code-signing certificate
         uses: apple-actions/import-codesign-certs@v2
         with:
           p12-file-base64: ${{ secrets.MAC_CERTIFICATE }}
           p12-password: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
-          keychain: build.keychain
+          keychain: build              # no “.keychain” suffix
           keychain-password: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
 
-      # 4) Build, sign, notarize & package (using your package.json afterSign)
+      # 4) Build, sign, notarize & package
       - name: Build & Notarize macOS
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
@@ -47,7 +46,6 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
           CSC_NAME: 'Developer ID Application: Austin Ginn (P76H6523Q4)'
         run: |
-          # you can target arm64, intel, or universal; here we do arm64
           npx electron-builder --mac --arm64 --publish=never
 
       # 5) Verify signing & notarization
@@ -57,14 +55,14 @@ jobs:
           spctl -a -vv -t install "dist/mac/Wing to LiveTrax.app"
           xcrun stapler validate "dist/mac/Wing to LiveTrax.app"
 
-      # 6) Upload the DMG so you can grab it from Actions
+      # 6) Upload the DMG as an artifact
       - name: Upload DMG artifact
         uses: actions/upload-artifact@v4
         with:
           name: Wing-to-LiveTrax-macOS
           path: dist/*.dmg
 
-      # 7) Create GitHub Release and attach the DMG
+      # 7) Create a GitHub Release and attach the DMG
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
