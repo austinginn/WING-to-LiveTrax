@@ -43,8 +43,7 @@
       ],
       "hardenedRuntime": true,
       "entitlements": "electron/build/entitlements.mac.plist",
-      "entitlementsInherit": "electron/build/entitlements.mac.plist",
-      "identity": "Austin Ginn (P76H6523Q4)"
+      "entitlementsInherit": "electron/build/entitlements.mac.plist"
     },
     "win": {
       "icon": "./electron/icons/icon.ico",

@@ -1,84 +1,52 @@
-name: Build & Publish Release
+name: Build and Sign (macOS ARM64)
 
 on:
   push:
-    tags:
-      - 'v*.*.*'
-
-permissions:
-  contents: write
-  packages: write
+    tags: ['v*']
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]
-
+    runs-on: macos-latest
+    timeout-minutes: 30
     steps:
-      - name: Check out code
+      - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
         with:
-          fetch-depth: 0
+          node-version: '20'
+          cache: 'npm'
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build:frontend
+
+      - name: Import signing certificate
+        uses: Apple-Actions/import-codesign-certs@v2
         with:
-          node-version: '18.x'
-          cache: npm
+          p12-file-base64: ${{ secrets.MAC_CERTIFICATE }}
+          p12-password: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
+          keychain-password: ${{ secrets.KEYCHAIN_PASSWORD }}
+          create-keychain: true
 
-      - name: Decode Apple Developer P12
-        if: runner.os == 'macOS'
-        env:
-          CERT_P12_B64: ${{ secrets.APPLE_CERT_P12 }}
+      - name: Build signed app (ARM64)
         run: |
-          mkdir -p build
-          # Decode base64 keychain P12 into a file
-          printf '%s' "$CERT_P12_B64" | openssl base64 -A -d -out build/developer-id.p12
+          export ELECTRON_BUILDER_KEYCHAIN="temp.keychain"
+          npm run build:macArm -- \
+            --config.extraMetadata.name="wing-to-livetrax" \
+            --config.mac.identity="Developer ID Application: Austin Ginn (P76H6523Q4)" \
+            --config.afterSign="scripts/noop.js"
 
-      - name: Inspect P12 Validity
-        if: runner.os == 'macOS'
-        env:
-          P12_PASS: ${{ secrets.APPLE_CERT_PASSWORD }}
+      - name: Verify signature
         run: |
-          # Verify this is a valid PKCS#12
-          openssl pkcs12 -info -in build/developer-id.p12 -passin pass:$P12_PASS -noout
+          codesign -dv --verbose=4 "./dist/mac-arm64/Wing to LiveTrax.app"
+          spctl -a -vv "./dist/mac-arm64/Wing to LiveTrax.app" || true
 
-      - name: Install dependencies & Build Frontend
-        run: |
-          npm ci
-          npm run build:frontend
-
-      - name: Package, Sign & Notarize macOS
-        if: runner.os == 'macOS'
-        env:
-          CSC_LINK:           build/developer-id.p12
-          CSC_KEY_PASSWORD:   ${{ secrets.APPLE_CERT_PASSWORD }}
-          APPLE_ID:           ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD:  ${{ secrets.APPLE_ID_PASS }}
-          APPLE_TEAM_ID:              ${{ secrets.APPLE_TEAM_ID }}
-          GH_TOKEN:           ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "==> Building for macOS Intel..."
-          npm run build:macIntel
-          echo "==> Building for macOS ARM..."
-          npm run build:macArm
-
-      - name: Package Windows
-        if: runner.os == 'windows-latest'
-        run: npm run build:win
-
-      - name: Package Linux
-        if: runner.os == 'ubuntu-latest'
-        run: npm run build:linux
-
-      - name: Create / Upload GitHub Release
-        uses: softprops/action-gh-release@v1
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          files: |
-            dist/*.dmg
-            dist/*.zip
-            dist/*.AppImage
-            dist/*.deb
+          name: Wing-to-LiveTrax-macOS-ARM64
+          path: ./dist/mac-arm64/Wing to LiveTrax.app
