@@ -43,7 +43,7 @@ jobs:
       - name: Build signed app
         run: |
           npm run build:macArm -- \
-            --config.mac.identity="Developer ID Application: Austin Ginn (P76H6523Q4)" \
+            --config.mac.identity="Austin Ginn (P76H6523Q4)" \
             --config.afterSign="./scripts/noop.js"
 
       - name: Verify signature
