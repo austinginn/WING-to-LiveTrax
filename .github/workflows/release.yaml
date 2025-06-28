@@ -12,7 +12,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Needed for automatic release notes
+          fetch-depth: 0  # Required for automatic release notes
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -39,12 +39,11 @@ jobs:
 
       - name: Build and publish release
         env:
-          GH_TOKEN: ${{ github.token }}  # Automatic GitHub token
+          GH_TOKEN: ${{ github.token }}  # GitHub's automatic token
         run: |
           npm run build:macArm -- \
             --config.mac.identity="Austin Ginn (P76H6523Q4)" \
-            --config.publish=github \
-            --config.releaseInfo.releaseType=release
+            --config.publish=github
 
       - name: Verify signature
         run: |
