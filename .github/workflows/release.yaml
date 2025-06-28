@@ -7,44 +7,79 @@ on:
 jobs:
   release:
     runs-on: macos-latest
-    timeout-minutes: 45  # Increased for notarization
+    timeout-minutes: 30
     permissions:
       contents: write
     steps:
-      # [Previous steps remain identical until build step]
-      
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build:frontend
+
+      - name: Clean keychains
+        run: |
+          security delete-keychain temp.keychain || true
+          security list-keychains -d user -s login.keychain-db
+
+      - name: Import signing certificate
+        uses: Apple-Actions/import-codesign-certs@v2
+        with:
+          p12-file-base64: ${{ secrets.MAC_CERTIFICATE }}
+          p12-password: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
+
       - name: Build application
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           npm run build:macArm -- \
             --config.mac.identity="Austin Ginn (P76H6523Q4)" \
-            --config.forceCodeSigning=true
+            --config.mac.hardenedRuntime=true \
+            --config.mac.gatekeeperAssess=false \
+            --config.mac.entitlements="./electron/buildentitlements.mac.plist" \
+            --config.mac.entitlementsInherit="./electron/entitlements.mac.plist"
 
       - name: Verify signature
         run: |
           codesign -dv --verbose=4 "./dist/mac-arm64/Wing to LiveTrax.app"
           spctl -a -vv "./dist/mac-arm64/Wing to LiveTrax.app" || true
 
+      - name: Create zip for notarization
+        run: |
+          ditto -c -k --keepParent "./dist/mac-arm64/Wing to LiveTrax.app" "WingToLiveTrax.zip"
+
       - name: Notarize application
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_ID_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         run: |
-          # Package for notarization (must be zip)
-          ditto -c -k --keepParent "./dist/mac-arm64/Wing to LiveTrax.app" "WingToLiveTrax.zip"
-          
-          # Submit to Apple (--wait pauses until completion)
           xcrun notarytool submit "WingToLiveTrax.zip" \
             --apple-id "$APPLE_ID" \
             --team-id "P76H6523Q4" \
             --password "$APPLE_ID_PASSWORD" \
             --wait
 
-          # Staple the ticket to the app
+      - name: Staple notarization ticket
+        run: |
           xcrun stapler staple "./dist/mac-arm64/Wing to LiveTrax.app"
 
-      - name: Create final DMG
+      - name: Verify notarization
+        run: |
+          spctl -a -vv -t install "./dist/mac-arm64/Wing to LiveTrax.app"
+          xcrun stapler validate "./dist/mac-arm64/Wing to LiveTrax.app"
+
+      - name: Create DMG
         run: |
           npm run build:macArm -- --config.mac.target=dmg
 
