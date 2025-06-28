@@ -2,23 +2,20 @@ name: Build, Sign, and Release
 
 on:
   push:
-    tags: ['v*']  # Trigger on version tags (e.g., v1.0.0)
+    tags: ['v*']
 
 jobs:
   release:
     runs-on: macos-latest
-    timeout-minutes: 45  # Extended for notarization
+    timeout-minutes: 45
     permissions:
-      contents: write  # Required for GitHub releases
+      contents: write
 
     steps:
-      # ======================
-      # SETUP
-      # ======================
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Required for full git history
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -29,9 +26,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # ======================
-      # BUILD PROCESS
-      # ======================
       - name: Build frontend
         run: npm run build:frontend
 
@@ -46,61 +40,35 @@ jobs:
           p12-file-base64: ${{ secrets.MAC_CERTIFICATE }}
           p12-password: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
 
-      # ======================
-      # SINGLE BUILD COMMAND
-      # ======================
-      - name: Build and prepare release
-        env:
-          GH_TOKEN: ${{ github.token }}  # For GitHub releases
+      - name: Build signed .app
         run: |
-          # Build once with all configurations
-          npm run build:macArm -- \
+          npx electron-builder --mac --arm64 \
             --config.mac.identity="Austin Ginn (P76H6523Q4)" \
-            --config.publish=always \  # Prepare release (won't publish until notarization completes)
             --config.forceCodeSigning=true \
-            --config.mac.target=dir  # Build .app directory first
+            --config.mac.target=dir
 
-      # ======================
-      # NOTARIZATION
-      # ======================
+      - name: Verify signature
+        run: |
+          codesign -dv --verbose=4 "./dist/mac-arm64/Wing to LiveTrax.app"
+          spctl -a -vv "./dist/mac-arm64/Wing to LiveTrax.app" || true
+
       - name: Notarize application
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_ID_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         run: |
-          # Verify signature first
-          codesign -dv --verbose=4 "./dist/mac-arm64/Wing to LiveTrax.app"
-          
-          # Package for notarization (must be zip)
           ditto -c -k --keepParent "./dist/mac-arm64/Wing to LiveTrax.app" "WingToLiveTrax.zip"
-          
-          # Submit to Apple (--wait pauses until completion)
           xcrun notarytool submit "WingToLiveTrax.zip" \
             --apple-id "$APPLE_ID" \
             --team-id "P76H6523Q4" \
             --password "$APPLE_ID_PASSWORD" \
             --wait
-
-          # Staple the ticket to the app
           xcrun stapler staple "./dist/mac-arm64/Wing to LiveTrax.app"
 
-      # ======================
-      # FINAL ARTIFACT
-      # ======================
-      - name: Create distributable DMG
+      - name: Create final DMG and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          # Create DMG from the notarized .app
           npx electron-builder --mac --arm64 \
             --config.mac.target=dmg \
-            --config.publish=always  # Final publish
-
-      # ======================
-      # VERIFICATION
-      # ======================
-      - name: Verify artifacts
-        run: |
-          # Verify DMG signature
-          hdiutil verify "./dist/Wing to LiveTrax-${GITHUB_REF_NAME#v}-arm64.dmg"
-          
-          # Verify notarization
-          spctl -a -vv -t install "./dist/mac-arm64/Wing to LiveTrax.app"
+            --config.publish=always
