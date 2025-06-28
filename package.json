@@ -23,7 +23,6 @@
     "release:ci": "npm run build:all -- --publish always"
   },
   "build": {
-    "afterSign": "./notarize-hardcoded.cjs",
     "asar": true,
     "compression": "maximum",
     "appId": "com.aginn.winglivetrax",

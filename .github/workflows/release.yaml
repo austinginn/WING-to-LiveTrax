@@ -1,3 +1,4 @@
+# .github/workflows/release.yml
 name: Build, Sign, and Release
 
 on:
@@ -13,13 +14,13 @@ jobs:
       contents: write
 
     steps:
-      # 1) Checkout your repository
+      # 1) Checkout with full history
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # 2) Setup Node.js and cache dependencies
+      # 2) Setup Node.js & cache deps
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -29,45 +30,49 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # 3) Import your Apple code-signing certificate
+      # 3) Import your Mac code-signing cert into a dedicated keychain
       - name: Import code-signing certificate
         uses: apple-actions/import-codesign-certs@v2
         with:
           p12-file-base64: ${{ secrets.MAC_CERTIFICATE }}
           p12-password: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
-          keychain: build              # no “.keychain” suffix
+          keychain: build                   # no “.keychain” suffix
           keychain-password: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
 
-      # 4) Build, sign, notarize & package
+      # 4) Build, sign, notarize & package in one go
       - name: Build & Notarize macOS
         env:
+          # these envs will be picked up by electron-builder’s notarize logic
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
           CSC_NAME: 'Developer ID Application: Austin Ginn (P76H6523Q4)'
         run: |
-          npx electron-builder --mac --arm64 --publish=never
+          npx electron-builder --mac --arm64 --publish=never \
+            --config.mac.notarize.appleId="$APPLE_ID" \
+            --config.mac.notarize.appleIdPassword="$APPLE_APP_SPECIFIC_PASSWORD" \
+            --config.mac.notarize.teamId="P76H6523Q4"
 
       # 5) Verify signing & notarization
       - name: Verify code-signing & notarization
         run: |
           codesign -dv --verbose=4 "dist/mac/Wing to LiveTrax.app"
           spctl -a -vv -t install "dist/mac/Wing to LiveTrax.app"
-          xcrun stapler validate "dist/mac/Wing to LiveTrax.app"
+          xcrun stapler validate    "dist/mac/Wing to LiveTrax.app"
 
-      # 6) Upload the DMG as an artifact
+      # 6) Upload the DMG as an artifact for inspection
       - name: Upload DMG artifact
         uses: actions/upload-artifact@v4
         with:
           name: Wing-to-LiveTrax-macOS
           path: dist/*.dmg
 
-      # 7) Create a GitHub Release and attach the DMG
+      # 7) Create the GitHub Release and attach the DMG
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
-          files: dist/*.dmg
+          name:     ${{ github.ref_name }}
+          files:    dist/*.dmg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
