@@ -50,7 +50,7 @@ jobs:
               appPath: \`\${appOutDir}/\${appName}.app\`,
               appleId: process.env.APPLE_ID,
               appleIdPassword: process.env.APPLE_APP_SPECIFIC_PASSWORD,
-              teamId: 'P76H6523Q4'
+              teamId: 'P76H6523Q4' // Your hardcoded Team ID
             });
           };
           EOF
