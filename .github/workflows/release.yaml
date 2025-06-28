@@ -14,13 +14,13 @@ jobs:
       contents: write
 
     steps:
-      # 1) Checkout full history for tags/version
+      # 1) Checkout full history (needed for tags & versioning)
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # 2) Setup Node.js and cache deps
+      # 2) Setup Node.js & cache dependencies
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -30,16 +30,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # 3) Import your macOS code-signing certificate
+      # 3) Import your Apple Developer ID cert into a separate keychain
       - name: Import code-signing certificate
         uses: apple-actions/import-codesign-certs@v2
         with:
           p12-file-base64: ${{ secrets.MAC_CERTIFICATE }}
           p12-password: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
-          keychain: build
+          keychain: build               # NO “.keychain” suffix
           keychain-password: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
 
-      # 4) Build, sign, notarize, staple & package
+      # 4) Build, code-sign, notarize (staple), and package
       - name: Build & Notarize macOS
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
@@ -48,25 +48,28 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
           CSC_NAME: 'Austin Ginn (P76H6523Q4)'
         run: |
-          npx electron-builder --mac --arm64 --publish=never
+          npx electron-builder \
+            --mac --arm64 \
+            --publish=never \
+            --config.mac.notarize=false
 
-      # 5) Verify code-signing & notarization
+      # 5) Verify that the .app inside dist/mac-arm64 is signed & stapled
       - name: Verify code-signing & notarization
         run: |
           APP="dist/mac-arm64/Wing to LiveTrax.app"
           echo "Verifying $APP"
           codesign -dv --verbose=4 "$APP"
-          spctl -a -vv -t install "$APP"
+          spctl -a -vv --type install "$APP"
           xcrun stapler validate "$APP"
 
-      # 6) Upload the DMG as an artifact for inspection
+      # 6) Upload the DMG so you can manually inspect it
       - name: Upload DMG artifact
         uses: actions/upload-artifact@v4
         with:
           name: Wing-to-LiveTrax-macOS
           path: dist/*.dmg
 
-      # 7) Create GitHub Release and attach the DMG
+      # 7) Create a GitHub Release and attach the DMG
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
