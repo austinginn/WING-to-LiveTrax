@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.0.3](https://github.com/austinginn/WING-to-LiveTrax/compare/v1.0.2...v1.0.3) (2025-06-28)
+
+
+### Bug Fixes
+
+* crash on launch - plist issue ([22ec319](https://github.com/austinginn/WING-to-LiveTrax/commit/22ec319bdec63957bc2f2f311f0d24fda2dca216))
+
 ### [1.0.2](https://github.com/austinginn/WING-to-LiveTrax/compare/v1.0.1...v1.0.2) (2025-06-27)
 
 
