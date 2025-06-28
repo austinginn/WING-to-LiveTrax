@@ -4,6 +4,10 @@ on:
   push:
     tags: ['v*']
 
+env:
+  KEYCHAIN_NAME: temp.keychain
+  KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+
 jobs:
   build:
     runs-on: macos-latest
@@ -24,17 +28,35 @@ jobs:
       - name: Build frontend
         run: npm run build:frontend
 
+      # Clean up any existing keychain first
+      - name: Delete existing keychain (if any)
+        run: |
+          security delete-keychain $KEYCHAIN_NAME || true
+          security list-keychains -d user -s login.keychain-db
+
+      # Certificate import with proper settings
       - name: Import signing certificate
         uses: Apple-Actions/import-codesign-certs@v2
         with:
           p12-file-base64: ${{ secrets.MAC_CERTIFICATE }}
           p12-password: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
-          keychain-password: ${{ secrets.KEYCHAIN_PASSWORD }}
+          keychain-name: $KEYCHAIN_NAME
+          keychain-password: $KEYCHAIN_PASSWORD
           create-keychain: true
+          overwrite-keychain: true
+          delete-keychain: false
 
+      # Verify the import worked
+      - name: Verify certificate import
+        run: |
+          security list-keychains -d user
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_NAME"
+          security find-identity -v -p codesigning "$KEYCHAIN_NAME" | grep "Developer ID Application"
+
+      # Build with explicit keychain reference
       - name: Build signed app (ARM64)
         run: |
-          export ELECTRON_BUILDER_KEYCHAIN="temp.keychain"
+          export ELECTRON_BUILDER_KEYCHAIN="$KEYCHAIN_NAME"
           npm run build:macArm -- \
             --config.extraMetadata.name="wing-to-livetrax" \
             --config.mac.identity="Developer ID Application: Austin Ginn (P76H6523Q4)" \
