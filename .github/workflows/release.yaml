@@ -31,6 +31,27 @@ jobs:
           npm ci
           npm install @electron/notarize --save-dev
 
+      - name: Create CommonJS notarize file
+        run: |
+          cat <<EOF > notarize.cjs
+          const { notarize } = require('@electron/notarize');
+
+          module.exports = async function(context) {
+            const { electronPlatformName, appOutDir } = context;  
+            if (electronPlatformName !== 'darwin') return;
+
+            const appName = context.packager.appInfo.productFilename;
+            
+            await notarize({
+              appBundleId: 'com.aginn.winglivetrax',
+              appPath: \`\${appOutDir}/\${appName}.app\`,
+              appleId: process.env.APPLE_ID,
+              appleIdPassword: process.env.APPLE_ID_PASSWORD,
+              teamId: 'P76H6523Q4'
+            });
+          };
+          EOF
+
       - name: Build frontend
         run: npm run build:frontend
 
@@ -58,7 +79,8 @@ jobs:
         run: |
           npx electron-builder --mac --arm64 \
             --config.mac.identity="Austin Ginn (P76H6523Q4)" \
-            --config.forceCodeSigning=true
+            --config.forceCodeSigning=true \
+            --config.afterSign=./notarize.cjs
 
       # ======================
       # VERIFICATION
@@ -85,7 +107,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          gh release create "${{ github.ref_name }}" \
+          gh release create "v$VERSION" \
             "./dist/Wing to LiveTrax.dmg" \
             --title "v$VERSION" \
             --notes "Automatic release"
