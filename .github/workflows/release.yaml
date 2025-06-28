@@ -40,7 +40,7 @@ jobs:
           p12-file-base64: ${{ secrets.MAC_CERTIFICATE }}
           p12-password: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
 
-      - name: Build signed .app
+      - name: Build signed application
         run: |
           npx electron-builder --mac --arm64 \
             --config.mac.identity="Austin Ginn (P76H6523Q4)" \
@@ -65,10 +65,24 @@ jobs:
             --wait
           xcrun stapler staple "./dist/mac-arm64/Wing to LiveTrax.app"
 
-      - name: Create final DMG and publish
+      - name: Create distributable DMG
+        run: |
+          npx electron-builder --mac --arm64 \
+            --config.mac.target=dmg
+
+      - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # Create release.json configuration
+          cat <<EOF > release.json
+          {
+            "provider": "github",
+            "releaseType": "release",
+            "publishAutoUpdate": true
+          }
+          EOF
+          
+          # Publish using the config
           npx electron-builder --mac --arm64 \
-            --config.mac.target=dmg \
-            --config.publish=always
+            --config.publish=@release.json
