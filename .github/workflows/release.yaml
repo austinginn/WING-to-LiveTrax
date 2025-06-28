@@ -9,48 +9,54 @@ jobs:
     runs-on: macos-latest
     timeout-minutes: 30
     steps:
-      - name: Checkout
+      # 1. Setup
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Create noop script
+        run: |
+          mkdir -p scripts
+          echo "exports.default = async () => {}" > scripts/noop.js
+
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
+      # 2. Build
       - name: Install dependencies
         run: npm ci
 
       - name: Build frontend
         run: npm run build:frontend
 
-      # Nuke conflicting keychains
+      # 3. Code signing setup
       - name: Clean keychains
         run: |
           security delete-keychain temp.keychain || true
-          security delete-keychain signing_temp.keychain || true
           security list-keychains -d user -s login.keychain-db
 
-      # Minimal certificate import
       - name: Import signing certificate
         uses: Apple-Actions/import-codesign-certs@v2
         with:
           p12-file-base64: ${{ secrets.MAC_CERTIFICATE }}
           p12-password: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
-          # No keychain parameters - uses default login.keychain
 
-      # Simplified build
+      # 4. Build and sign
       - name: Build signed app
         run: |
           npm run build:macArm -- \
             --config.mac.identity="Developer ID Application: Austin Ginn (P76H6523Q4)" \
             --config.afterSign="scripts/noop.js"
 
+      # 5. Verification
       - name: Verify signature
         run: |
           codesign -dv --verbose=4 "./dist/mac-arm64/Wing to LiveTrax.app"
           spctl -a -vv "./dist/mac-arm64/Wing to LiveTrax.app" || true
 
+      # 6. Output
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
