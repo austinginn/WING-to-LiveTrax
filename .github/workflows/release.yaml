@@ -40,12 +40,14 @@ jobs:
           p12-file-base64: ${{ secrets.MAC_CERTIFICATE }}
           p12-password: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
 
-      - name: Build signed application
+      - name: Build application (DIR only)
         run: |
+          # Build ONLY the .app directory without any publishing
           npx electron-builder --mac --arm64 \
             --config.mac.identity="Austin Ginn (P76H6523Q4)" \
             --config.forceCodeSigning=true \
-            --config.mac.target=dir
+            --config.mac.target=dir \
+            --config.publish.never=true
 
       - name: Verify signature
         run: |
@@ -65,19 +67,18 @@ jobs:
             --wait
           xcrun stapler staple "./dist/mac-arm64/Wing to LiveTrax.app"
 
-      - name: Create distributable DMG
+      - name: Create DMG (no publish)
         run: |
+          # Create DMG without attempting to publish
           npx electron-builder --mac --arm64 \
-            --config.mac.target=dmg
+            --config.mac.target=dmg \
+            --config.publish.never=true
 
-      - name: Publish release
+      - name: Publish release manually
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Get version from package.json
           VERSION=$(node -p "require('./package.json').version")
-          
-          # Create release using GitHub CLI
           gh release create "v$VERSION" \
             "./dist/Wing to LiveTrax-$VERSION-arm64.dmg" \
             --title "v$VERSION" \
