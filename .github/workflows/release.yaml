@@ -47,8 +47,8 @@ jobs:
             --config.mac.identity="Austin Ginn (P76H6523Q4)" \
             --config.mac.hardenedRuntime=true \
             --config.mac.gatekeeperAssess=false \
-            --config.mac.entitlements="./electron/buildentitlements.mac.plist" \
-            --config.mac.entitlementsInherit="./electron/entitlements.mac.plist"
+            --config.mac.entitlements="./electron/build/entitlements.mac.plist" \
+            --config.mac.entitlementsInherit="./electron/build/entitlements.mac.plist"
 
       - name: Verify signature
         run: |
