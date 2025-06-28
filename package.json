@@ -39,13 +39,12 @@
     ],
     "mac": {
       "icon": "./electron/icons/icon.icns",
-      "target": [
-        "dmg"
-      ],
+      "target": "dmg",
       "hardenedRuntime": true,
       "gatekeeperAssess": false,
       "entitlements": "./electron/build/entitlements.mac.plist",
-      "entitlementsInherit": "./electron/build/entitlements.mac.plist"
+      "entitlementsInherit": "./electron/build/entitlements.mac.plist",
+      "category": "public.app-category.music"
     },
     "win": {
       "icon": "./electron/icons/icon.ico",

@@ -27,7 +27,9 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        run: |
+          npm ci
+          npm install @electron/notarize --save-dev
 
       - name: Build frontend
         run: npm run build:frontend
@@ -47,43 +49,43 @@ jobs:
           p12-password: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
 
       # ======================
-      # BUILD WITH NOTARIZATION
+      # BUILD & NOTARIZE
       # ======================
       - name: Build and notarize
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_ID_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         run: |
-          # Create DMG with Applications link
           npx electron-builder --mac --arm64 \
             --config.mac.identity="Austin Ginn (P76H6523Q4)" \
-            --config.forceCodeSigning=true \
-            --config.afterSign=./notarize.js \
-            --config.mac.target=dmg \
-            --config.dmg.contents=[
-              {
-                "x": 130,
-                "y": 220,
-                "type": "file",
-                "path": "Wing to LiveTrax.app"
-              },
-              {
-                "x": 410,
-                "y": 220,
-                "type": "link",
-                "path": "/Applications"
-              }
-            ]
+            --config.forceCodeSigning=true
 
       # ======================
       # VERIFICATION
       # ======================
       - name: Verify artifacts
         run: |
-          # Mount the DMG to verify contents
+          # Verify code signing
+          codesign -dv --verbose=4 "./dist/mac-arm64/Wing to LiveTrax.app"
+          
+          # Verify notarization
+          spctl -a -vv -t install "./dist/mac-arm64/Wing to LiveTrax.app"
+          xcrun stapler validate "./dist/mac-arm64/Wing to LiveTrax.app"
+
+          # Verify DMG contents
           hdiutil attach "./dist/Wing to LiveTrax.dmg" -mountpoint /Volumes/WingInstaller
           ls -la /Volumes/WingInstaller
           hdiutil detach /Volumes/WingInstaller
 
-          # Verify notarization
-          spctl -a -vv -t install "./dist/mac-arm64/Wing to LiveTrax.app"
+      # ======================
+      # PUBLISH RELEASE
+      # ======================
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          gh release create "${{ github.ref_name }}" \
+            "./dist/Wing to LiveTrax.dmg" \
+            --title "v$VERSION" \
+            --notes "Automatic release"
