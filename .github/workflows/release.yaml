@@ -7,15 +7,13 @@ on:
 jobs:
   release:
     runs-on: macos-latest
-    timeout-minutes: 60  # Extra time for notarization
+    timeout-minutes: 45
     permissions:
       contents: write
-      packages: write
-      actions: read
 
     steps:
       # ======================
-      # SETUP & BUILD
+      # SETUP
       # ======================
       - name: Checkout code
         uses: actions/checkout@v4
@@ -35,7 +33,7 @@ jobs:
         run: npm run build:frontend
 
       # ======================
-      # CODE SIGNING
+      # CODE SIGNING SETUP
       # ======================
       - name: Clean keychains
         run: |
@@ -48,7 +46,10 @@ jobs:
           p12-file-base64: ${{ secrets.MAC_CERTIFICATE }}
           p12-password: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
 
-      - name: Build signed app
+      # ======================
+      # SINGLE BUILD & SIGN
+      # ======================
+      - name: Build and sign application
         run: |
           npx electron-builder --mac --arm64 \
             --config.mac.identity="Austin Ginn (P76H6523Q4)" \
@@ -68,44 +69,40 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_ID_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
         run: |
-          # Package for notarization
           ditto -c -k --keepParent "./dist/mac-arm64/Wing to LiveTrax.app" "WingToLiveTrax.zip"
-          
-          # Submit to Apple
           xcrun notarytool submit "WingToLiveTrax.zip" \
             --apple-id "$APPLE_ID" \
             --team-id "P76H6523Q4" \
             --password "$APPLE_ID_PASSWORD" \
             --wait
-          
-          # Staple ticket
           xcrun stapler staple "./dist/mac-arm64/Wing to LiveTrax.app"
 
       # ======================
-      # CREATE FINAL ARTIFACT
+      # CREATE DMG FROM EXISTING APP
       # ======================
-      - name: Create DMG (no publish)
+      - name: Create DMG from signed app
         run: |
-          # Force-disable publishing with dummy config
-          npx electron-builder --mac --arm64 \
-            --config.mac.target=dmg \
-            --config.publish.provider=generic \
-            --config.publish.url=http://example.com
+          # Create DMG directly using hdiutil
+          hdiutil create \
+            -volname "Wing to LiveTrax" \
+            -srcfolder "./dist/mac-arm64/Wing to LiveTrax.app" \
+            -ov \
+            -format UDZO \
+            -fs HFS+ \
+            "./dist/Wing-to-LiveTrax.dmg"
+
+          # Verify DMG
+          hdiutil verify "./dist/Wing-to-LiveTrax.dmg"
 
       # ======================
-      # MANUAL RELEASE PROCESS
+      # PUBLISH RELEASE
       # ======================
-      - name: Get version
-        id: version
-        run: |
-          VERSION=$(node -p "require('./package.json').version")
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
-
-      - name: Create GitHub Release
+      - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "${{ github.ref_name }}" \
-            "./dist/Wing to LiveTrax-${{ steps.version.outputs.version }}-arm64.dmg" \
-            --title "${{ github.ref_name }}" \
+          VERSION=$(node -p "require('./package.json').version")
+          gh release create "v$VERSION" \
+            "./dist/Wing-to-LiveTrax.dmg" \
+            --title "v$VERSION" \
             --notes "Automatic release"
