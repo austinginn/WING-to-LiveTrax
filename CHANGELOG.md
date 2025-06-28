@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.0.4](https://github.com/austinginn/WING-to-LiveTrax/compare/v1.0.3...v1.0.4) (2025-06-28)
+
+
+### Bug Fixes
+
+* added notarization ([176fab9](https://github.com/austinginn/WING-to-LiveTrax/commit/176fab9d56fa0111cf13a01071f96b951c9951f7))
+
 ### [1.0.3](https://github.com/austinginn/WING-to-LiveTrax/compare/v1.0.2...v1.0.3) (2025-06-28)
 
 
