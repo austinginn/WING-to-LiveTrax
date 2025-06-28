@@ -14,13 +14,13 @@ jobs:
       contents: write
 
     steps:
-      # 1) Checkout full history
+      # 1) Checkout full history for tags/version
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # 2) Setup Node.js & cache npm
+      # 2) Setup Node.js and cache deps
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -30,7 +30,7 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # 3) Import your code-signing cert
+      # 3) Import your macOS code-signing certificate
       - name: Import code-signing certificate
         uses: apple-actions/import-codesign-certs@v2
         with:
@@ -39,7 +39,7 @@ jobs:
           keychain: build
           keychain-password: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
 
-      # 4) Build, sign, notarize & package
+      # 4) Build, sign, notarize, staple & package
       - name: Build & Notarize macOS
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
@@ -53,23 +53,25 @@ jobs:
       # 5) Verify code-signing & notarization
       - name: Verify code-signing & notarization
         run: |
-          codesign -dv --verbose=4 "dist/mac/Wing to LiveTrax.app"
-          spctl -a -vv -t install "dist/mac/Wing to LiveTrax.app"
-          xcrun stapler validate "dist/mac/Wing to LiveTrax.app"
+          APP="dist/mac-arm64/Wing to LiveTrax.app"
+          echo "Verifying $APP"
+          codesign -dv --verbose=4 "$APP"
+          spctl -a -vv -t install "$APP"
+          xcrun stapler validate "$APP"
 
-      # 6) Upload DMG artifact
+      # 6) Upload the DMG as an artifact for inspection
       - name: Upload DMG artifact
         uses: actions/upload-artifact@v4
         with:
           name: Wing-to-LiveTrax-macOS
           path: dist/*.dmg
 
-      # 7) Create GitHub Release
+      # 7) Create GitHub Release and attach the DMG
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ github.ref_name }}
-          name:     ${{ github.ref_name }}
-          files:    dist/*.dmg
+          name:      ${{ github.ref_name }}
+          files:     dist/*.dmg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
