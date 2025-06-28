@@ -23,6 +23,7 @@
     "release:ci": "npm run build:all -- --publish always"
   },
   "build": {
+    "afterSign": "./notarize.js",
     "asar": true,
     "compression": "maximum",
     "appId": "com.aginn.winglivetrax",
@@ -66,6 +67,7 @@
     "node-osc": "^9.1.5"
   },
   "devDependencies": {
+    "@electron/notarize": "^2.5.0",
     "@vitejs/plugin-vue": "^5.2.3",
     "electron": "^36.5.0",
     "electron-builder": "^26.0.12",
