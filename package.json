@@ -29,7 +29,7 @@
     "files": [
       "dist/**",
       "electron/**/*",
-      "electron/build/**",
+      "electron/build/*",
       "!**/*.map",
       "!**/__tests__/**",
       "!**/*.ts",
@@ -42,8 +42,9 @@
         "dmg"
       ],
       "hardenedRuntime": true,
-      "entitlements": "electron/build/entitlements.mac.plist",
-      "entitlementsInherit": "electron/build/entitlements.mac.plist"
+      "gatekeeperAssess": false,
+      "entitlements": "./electron/build/entitlements.mac.plist",
+      "entitlementsInherit": "./electron/build/entitlements.mac.plist"
     },
     "win": {
       "icon": "./electron/icons/icon.ico",
