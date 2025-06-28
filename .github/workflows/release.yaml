@@ -45,8 +45,7 @@ jobs:
           npx electron-builder --mac --arm64 \
             --config.mac.identity="Austin Ginn (P76H6523Q4)" \
             --config.forceCodeSigning=true \
-            --config.mac.target=dir \
-            --config.publish=never
+            --config.mac.target=dir
 
       - name: Verify signature
         run: |
@@ -69,17 +68,16 @@ jobs:
       - name: Create distributable DMG
         run: |
           npx electron-builder --mac --arm64 \
-            --config.mac.target=dmg \
-            --config.publish=never
+            --config.mac.target=dmg
 
       - name: Publish release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          # Get the version from package.json
+          # Get version from package.json
           VERSION=$(node -p "require('./package.json').version")
           
-          # Create release
+          # Create release using GitHub CLI
           gh release create "v$VERSION" \
             "./dist/Wing to LiveTrax-$VERSION-arm64.dmg" \
             --title "v$VERSION" \
