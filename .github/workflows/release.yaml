@@ -59,7 +59,7 @@ jobs:
 
       # 6) Upload the DMG so you can grab it from Actions
       - name: Upload DMG artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: Wing-to-LiveTrax-macOS
           path: dist/*.dmg
