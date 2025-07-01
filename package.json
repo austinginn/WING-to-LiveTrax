@@ -52,6 +52,16 @@
       "gatekeeperAssess": false,
       "entitlements": "./electron/build/entitlements.mac.plist",
       "entitlementsInherit": "./electron/build/entitlements.mac.plist"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "electron/icons/icon.ico",
+      "publisherName": "Austin Ginn"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "electron/icons/icon.png",
+      "category": "Utility"
     }
   }
 }
