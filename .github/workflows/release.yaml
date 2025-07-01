@@ -58,13 +58,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: macOS
-          path:
-            - dist/*.dmg
-            - dist/*.zip
+          path: |
+            dist/*.dmg
+            dist/*.zip
           if-no-files-found: warn
-          compression-level: 6
-          overwrite: false
-          include-hidden-files: false
 
   build-windows:
     name: Windows
@@ -94,9 +91,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Windows
-          path:
-            - dist/*.exe
-            - dist/*.zip
+          path: |
+            dist/*.exe
+            dist/*.zip
           if-no-files-found: warn
 
   build-linux:
@@ -127,9 +124,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Linux
-          path:
-            - dist/*.AppImage
-            - dist/*.deb
+          path: |
+            dist/*.AppImage
+            dist/*.deb
           if-no-files-found: warn
 
   release:
@@ -139,6 +136,7 @@ jobs:
       - build-mac
       - build-windows
       - build-linux
+
     steps:
       - name: Download macOS artifacts
         uses: actions/download-artifact@v4
