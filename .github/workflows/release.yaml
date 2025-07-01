@@ -60,8 +60,8 @@ jobs:
         with:
           name: macOS
           path: |
-            dist/mac/*.dmg
-            dist/mac/*.zip
+            dist/*.dmg
+            dist/*.zip
 
   build-windows:
     name: Windows
@@ -91,8 +91,8 @@ jobs:
         with:
           name: Windows
           path: |
-            dist/win*-nsis/*.exe
-            dist/win*-nsis/*.zip
+            dist/*.exe
+            dist/*.zip
 
   build-linux:
     name: Linux
@@ -122,8 +122,8 @@ jobs:
         with:
           name: Linux
           path: |
-            dist/linux/*.AppImage
-            dist/linux/*.deb
+            dist/*.AppImage
+            dist/*.deb
 
   release:
     name: Create GitHub Release
