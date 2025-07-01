@@ -6,7 +6,7 @@ on:
     tags:
       - 'v*.*.*'
 
-# give the default GITHUB_TOKEN permission to write releases
+# grant the built-in GITHUB_TOKEN repo write access
 permissions:
   contents: write
 
@@ -50,9 +50,9 @@ jobs:
         env:
           CSC_LINK: mac_cert.p12
           CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID:           ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_TEAM_ID:      ${{ secrets.APPLE_TEAM_ID }}
         run: npm run dist:mac
 
       - name: Upload macOS artifacts
@@ -133,10 +133,6 @@ jobs:
       - build-windows
       - build-linux
 
-    # expose the built-in GITHUB_TOKEN as GH_TOKEN
-    env:
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
     steps:
       - name: Download macOS artifacts
         uses: actions/download-artifact@v4
@@ -157,18 +153,17 @@ jobs:
         id: create_release
         uses: actions/create-release@v1
         with:
-          token: ${{ env.GH_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ github.ref_name }}
           release_name: Release ${{ github.ref_name }}
-          body: |
-            Automated release for ${{ github.ref_name }}
+          body: Automated release for ${{ github.ref_name }}
           draft: false
           prerelease: false
 
       - name: Upload macOS DMG
         uses: actions/upload-release-asset@v1
         with:
-          token: ${{ env.GH_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: dist/mac/*.dmg
           asset_name: Wing-to-LiveTrax-${{ github.ref_name }}-mac.dmg
@@ -177,7 +172,7 @@ jobs:
       - name: Upload macOS ZIP
         uses: actions/upload-release-asset@v1
         with:
-          token: ${{ env.GH_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: dist/mac/*.zip
           asset_name: Wing-to-LiveTrax-${{ github.ref_name }}-mac.zip
@@ -186,7 +181,7 @@ jobs:
       - name: Upload Windows installer
         uses: actions/upload-release-asset@v1
         with:
-          token: ${{ env.GH_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: dist/win*-nsis/*.exe
           asset_name: Wing-to-LiveTrax-${{ github.ref_name }}-win.exe
@@ -195,7 +190,7 @@ jobs:
       - name: Upload Windows ZIP
         uses: actions/upload-release-asset@v1
         with:
-          token: ${{ env.GH_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: dist/win*-nsis/*.zip
           asset_name: Wing-to-LiveTrax-${{ github.ref_name }}-win.zip
@@ -204,7 +199,7 @@ jobs:
       - name: Upload Linux AppImage
         uses: actions/upload-release-asset@v1
         with:
-          token: ${{ env.GH_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: dist/linux/*.AppImage
           asset_name: Wing-to-LiveTrax-${{ github.ref_name }}-linux.AppImage
@@ -213,7 +208,7 @@ jobs:
       - name: Upload Linux DEB
         uses: actions/upload-release-asset@v1
         with:
-          token: ${{ env.GH_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           upload_url: ${{ steps.create_release.outputs.upload_url }}
           asset_path: dist/linux/*.deb
           asset_name: Wing-to-LiveTrax-${{ github.ref_name }}-linux.deb
