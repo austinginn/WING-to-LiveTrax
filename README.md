@@ -44,8 +44,8 @@ WING to LiveTrax is currently built with Electron and Vue to enable rapid protot
 
 - **Packaging Targets:**  
   - macOS: Universal DMG & ZIP  
-  - Windows: NSIS installer & ZIP  
-  - Linux: AppImage & Debian (.deb)
+  - Windows: .exe 
+  - Linux: AppImage
 
 - **License:** MIT © Austin Ginn
 
