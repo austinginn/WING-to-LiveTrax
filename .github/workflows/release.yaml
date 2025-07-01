@@ -153,11 +153,11 @@ jobs:
         run: |
           if ls artifacts/macOS/*.dmg 1> /dev/null 2>&1; then
             DMG_PATH=$(ls artifacts/macOS/*.dmg | head -1)
-            echo "Uploading $DMG_PATH"
-            gh release upload ${{ github.ref_name }} "$DMG_PATH" \
+            echo "Renaming and uploading $DMG_PATH"
+            cp "$DMG_PATH" "Wing-to-LiveTrax-${{ github.ref_name }}-mac.dmg"
+            gh release upload ${{ github.ref_name }} "Wing-to-LiveTrax-${{ github.ref_name }}-mac.dmg" \
               --clobber \
-              --repo ${{ github.repository }} \
-              --name "Wing-to-LiveTrax-${{ github.ref_name }}-mac.dmg"
+              --repo ${{ github.repository }}
           else
             echo "No macOS DMG found to upload"
           fi
@@ -168,11 +168,11 @@ jobs:
         run: |
           if ls artifacts/macOS/*.zip 1> /dev/null 2>&1; then
             ZIP_PATH=$(ls artifacts/macOS/*.zip | head -1)
-            echo "Uploading $ZIP_PATH"
-            gh release upload ${{ github.ref_name }} "$ZIP_PATH" \
+            echo "Renaming and uploading $ZIP_PATH"
+            cp "$ZIP_PATH" "Wing-to-LiveTrax-${{ github.ref_name }}-mac.zip"
+            gh release upload ${{ github.ref_name }} "Wing-to-LiveTrax-${{ github.ref_name }}-mac.zip" \
               --clobber \
-              --repo ${{ github.repository }} \
-              --name "Wing-to-LiveTrax-${{ github.ref_name }}-mac.zip"
+              --repo ${{ github.repository }}
           else
             echo "No macOS ZIP found to upload"
           fi
@@ -184,11 +184,11 @@ jobs:
         run: |
           if ls artifacts/Windows/*.exe 1> /dev/null 2>&1; then
             EXE_PATH=$(ls artifacts/Windows/*.exe | head -1)
-            echo "Uploading $EXE_PATH"
-            gh release upload ${{ github.ref_name }} "$EXE_PATH" \
+            echo "Renaming and uploading $EXE_PATH"
+            cp "$EXE_PATH" "Wing-to-LiveTrax-${{ github.ref_name }}-win.exe"
+            gh release upload ${{ github.ref_name }} "Wing-to-LiveTrax-${{ github.ref_name }}-win.exe" \
               --clobber \
-              --repo ${{ github.repository }} \
-              --name "Wing-to-LiveTrax-${{ github.ref_name }}-win.exe"
+              --repo ${{ github.repository }}
           else
             echo "No Windows EXE found to upload"
           fi
@@ -199,11 +199,11 @@ jobs:
         run: |
           if ls artifacts/Windows/*.zip 1> /dev/null 2>&1; then
             ZIP_PATH=$(ls artifacts/Windows/*.zip | head -1)
-            echo "Uploading $ZIP_PATH"
-            gh release upload ${{ github.ref_name }} "$ZIP_PATH" \
+            echo "Renaming and uploading $ZIP_PATH"
+            cp "$ZIP_PATH" "Wing-to-LiveTrax-${{ github.ref_name }}-win.zip"
+            gh release upload ${{ github.ref_name }} "Wing-to-LiveTrax-${{ github.ref_name }}-win.zip" \
               --clobber \
-              --repo ${{ github.repository }} \
-              --name "Wing-to-LiveTrax-${{ github.ref_name }}-win.zip"
+              --repo ${{ github.repository }}
           else
             echo "No Windows ZIP found to upload"
           fi
@@ -215,11 +215,11 @@ jobs:
         run: |
           if ls artifacts/Linux/*.AppImage 1> /dev/null 2>&1; then
             APPIMAGE_PATH=$(ls artifacts/Linux/*.AppImage | head -1)
-            echo "Uploading $APPIMAGE_PATH"
-            gh release upload ${{ github.ref_name }} "$APPIMAGE_PATH" \
+            echo "Renaming and uploading $APPIMAGE_PATH"
+            cp "$APPIMAGE_PATH" "Wing-to-LiveTrax-${{ github.ref_name }}-linux.AppImage"
+            gh release upload ${{ github.ref_name }} "Wing-to-LiveTrax-${{ github.ref_name }}-linux.AppImage" \
               --clobber \
-              --repo ${{ github.repository }} \
-              --name "Wing-to-LiveTrax-${{ github.ref_name }}-linux.AppImage"
+              --repo ${{ github.repository }}
           else
             echo "No Linux AppImage found to upload"
           fi
@@ -230,11 +230,11 @@ jobs:
         run: |
           if ls artifacts/Linux/*.deb 1> /dev/null 2>&1; then
             DEB_PATH=$(ls artifacts/Linux/*.deb | head -1)
-            echo "Uploading $DEB_PATH"
-            gh release upload ${{ github.ref_name }} "$DEB_PATH" \
+            echo "Renaming and uploading $DEB_PATH"
+            cp "$DEB_PATH" "Wing-to-LiveTrax-${{ github.ref_name }}-linux.deb"
+            gh release upload ${{ github.ref_name }} "Wing-to-LiveTrax-${{ github.ref_name }}-linux.deb" \
               --clobber \
-              --repo ${{ github.repository }} \
-              --name "Wing-to-LiveTrax-${{ github.ref_name }}-linux.deb"
+              --repo ${{ github.repository }}
           else
             echo "No Linux DEB found to upload"
           fi
