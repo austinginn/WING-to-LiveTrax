@@ -12,9 +12,9 @@
     "dev:vue": "vite",
     "dev:electron": "wait-on http://localhost:5173 && electron .",
     "build:frontend": "vite build",
-    "dist:mac": "npm run build:frontend && electron-builder --mac",
-    "dist:win": "npm run build:frontend && electron-builder --win",
-    "dist:linux": "npm run build:frontend && electron-builder --linux",
+    "dist:mac": "npm run build:frontend && electron-builder --mac --publish never",
+    "dist:win": "npm run build:frontend && electron-builder --win --publish never",
+    "dist:linux": "npm run build:frontend && electron-builder --linux --publish never",
     "dist": "npm run dist:mac && npm run dist:win && npm run dist:linux",
     "preview": "vite preview",
     "release": "standard-version"
