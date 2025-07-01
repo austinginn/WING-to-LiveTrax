@@ -1,12 +1,10 @@
 name: Release
 
-# fire on any new semver tag
 on:
   push:
     tags:
       - 'v*.*.*'
 
-# grant the built-in GITHUB_TOKEN repo write access
 permissions:
   contents: write
 
@@ -19,20 +17,16 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
-
       - name: Cache npm
         uses: actions/cache@v3
         with:
           path: ~/.npm
           key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
-
       - run: npm ci
-
       - name: Import macOS signing cert
         run: |
           echo "${{ secrets.MAC_CERTIFICATE }}" | base64 --decode > mac_cert.p12
@@ -45,7 +39,6 @@ jobs:
           security default-keychain -s build.keychain
           security unlock-keychain -p "" build.keychain
           security set-keychain-settings -t 3600 -l build.keychain
-
       - name: Build & notarize macOS
         env:
           CSC_LINK: mac_cert.p12
@@ -54,14 +47,17 @@ jobs:
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID:      ${{ secrets.APPLE_TEAM_ID }}
         run: npm run dist:mac
-
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
         with:
           name: macOS
-          path: |
-            dist/*.dmg
-            dist/*.zip
+          path:
+            - dist/*.dmg
+            - dist/*.zip
+          if-no-files-found: warn
+          compression-level: 6
+          overwrite: false
+          include-hidden-files: false
 
   build-windows:
     name: Windows
@@ -69,30 +65,26 @@ jobs:
     needs: build-mac
     steps:
       - uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
-
       - name: Cache npm
         uses: actions/cache@v3
         with:
           path: C:\Users\runneradmin\AppData\Roaming\npm
           key: windows-npm-${{ hashFiles('package-lock.json') }}
-
       - run: npm ci
-
       - name: Build Windows (unsigned)
         run: npm run dist:win
-
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Windows
-          path: |
-            dist/*.exe
-            dist/*.zip
+          path:
+            - dist/*.exe
+            - dist/*.zip
+          if-no-files-found: warn
 
   build-linux:
     name: Linux
@@ -100,30 +92,26 @@ jobs:
     needs: build-mac
     steps:
       - uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
-
       - name: Cache npm
         uses: actions/cache@v3
         with:
           path: ~/.npm
           key: linux-npm-${{ hashFiles('package-lock.json') }}
-
       - run: npm ci
-
       - name: Build Linux (unsigned)
         run: npm run dist:linux
-
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Linux
-          path: |
-            dist/*.AppImage
-            dist/*.deb
+          path:
+            - dist/*.AppImage
+            - dist/*.deb
+          if-no-files-found: warn
 
   release:
     name: Create GitHub Release
@@ -132,7 +120,6 @@ jobs:
       - build-mac
       - build-windows
       - build-linux
-
     steps:
       - name: Download macOS artifacts
         uses: actions/download-artifact@v4
@@ -149,11 +136,12 @@ jobs:
         with:
           name: Linux
 
-      - name: Create GitHub Release
-        id: create_release
+      - id: create_release
+        name: Create GitHub Release
         uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ github.ref_name }}
           release_name: Release ${{ github.ref_name }}
           body: Automated release for ${{ github.ref_name }}
@@ -162,54 +150,60 @@ jobs:
 
       - name: Upload macOS DMG
         uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/mac/*.dmg
+          asset_path: dist/*.dmg
           asset_name: Wing-to-LiveTrax-${{ github.ref_name }}-mac.dmg
           asset_content_type: application/octet-stream
 
       - name: Upload macOS ZIP
         uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/mac/*.zip
+          asset_path: dist/*.zip
           asset_name: Wing-to-LiveTrax-${{ github.ref_name }}-mac.zip
           asset_content_type: application/zip
 
       - name: Upload Windows installer
         uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/win*-nsis/*.exe
+          asset_path: dist/*.exe
           asset_name: Wing-to-LiveTrax-${{ github.ref_name }}-win.exe
           asset_content_type: application/octet-stream
 
       - name: Upload Windows ZIP
         uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/win*-nsis/*.zip
+          asset_path: dist/*.zip
           asset_name: Wing-to-LiveTrax-${{ github.ref_name }}-win.zip
           asset_content_type: application/zip
 
       - name: Upload Linux AppImage
         uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/linux/*.AppImage
+          asset_path: dist/*.AppImage
           asset_name: Wing-to-LiveTrax-${{ github.ref_name }}-linux.AppImage
           asset_content_type: application/octet-stream
 
       - name: Upload Linux DEB
         uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: dist/linux/*.deb
+          asset_path: dist/*.deb
           asset_name: Wing-to-LiveTrax-${{ github.ref_name }}-linux.deb
           asset_content_type: application/vnd.debian.binary-package
