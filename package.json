@@ -56,7 +56,7 @@
     "win": {
       "target": "nsis",
       "icon": "electron/icons/icon.ico",
-      "publisherName": "Austin Ginn"
+      "legalTrademarks": "Austin Ginn"
     },
     "linux": {
       "target": "AppImage",
