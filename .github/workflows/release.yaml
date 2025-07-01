@@ -17,16 +17,21 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
+
       - name: Cache npm
         uses: actions/cache@v3
         with:
           path: ~/.npm
           key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
-      - run: npm ci
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Import macOS signing cert
         run: |
           echo "${{ secrets.MAC_CERTIFICATE }}" | base64 --decode > mac_cert.p12
@@ -39,14 +44,16 @@ jobs:
           security default-keychain -s build.keychain
           security unlock-keychain -p "" build.keychain
           security set-keychain-settings -t 3600 -l build.keychain
+
       - name: Build & notarize macOS
         env:
           CSC_LINK: mac_cert.p12
           CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
-          APPLE_ID:           ${{ secrets.APPLE_ID }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID:      ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: npm run dist:mac
+
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -65,18 +72,24 @@ jobs:
     needs: build-mac
     steps:
       - uses: actions/checkout@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
+
       - name: Cache npm
         uses: actions/cache@v3
         with:
           path: C:\Users\runneradmin\AppData\Roaming\npm
           key: windows-npm-${{ hashFiles('package-lock.json') }}
-      - run: npm ci
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Build Windows (unsigned)
         run: npm run dist:win
+
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -92,18 +105,24 @@ jobs:
     needs: build-mac
     steps:
       - uses: actions/checkout@v4
+
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
+
       - name: Cache npm
         uses: actions/cache@v3
         with:
           path: ~/.npm
           key: linux-npm-${{ hashFiles('package-lock.json') }}
-      - run: npm ci
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Build Linux (unsigned)
         run: npm run dist:linux
+
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
         with:
