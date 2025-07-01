@@ -15,7 +15,8 @@ WING to LiveTrax lets you synchronize your WING output group source names direct
    Open Wing to LiveTrax from your Applications (macOS), Start Menu (Windows), or App Menu (Linux).
 
 3. **Configure Connections**  
-   - Enter your WING’s IP address in the **WING IP** field.  
+   - Enter your WING’s IP address in the **WING IP** field. 
+   - In LiveTrax -> Preferences -> Control Surfaces, enale OSC
    - Enter your LiveTrax machine’s IP address in the **LiveTrax IP** field. Leave it as `127.0.0.1` (localhost) unless WING to LiveTrax is running on a different computer than LiveTrax, in which case enter that machine’s IP.  
    - Select the **Source Group** (USB, MOD, CRD) that you are using for multi-tracking.
 
