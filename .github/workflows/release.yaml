@@ -55,7 +55,7 @@ jobs:
           path: |
             dist/*.dmg
             dist/*.zip
-          if-no-files-found: warn
+          if-no-files-found: error
 
   build-windows:
     name: Windows
@@ -83,7 +83,7 @@ jobs:
           path: |
             dist/*.exe
             dist/*.zip
-          if-no-files-found: warn
+          if-no-files-found: error
 
   build-linux:
     name: Linux
@@ -111,7 +111,7 @@ jobs:
           path: |
             dist/*.AppImage
             dist/*.deb
-          if-no-files-found: warn
+          if-no-files-found: error
 
   release:
     name: Create GitHub Release
@@ -121,23 +121,15 @@ jobs:
       - build-windows
       - build-linux
     steps:
-      - name: Download macOS artifacts
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          name: macOS
-          path: macOS
-
-      - name: Download Windows artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: Windows
-          path: Windows
-
-      - name: Download Linux artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: Linux
-          path: Linux
+          path: artifacts
+          
+      - name: Debug directory structure
+        run: |
+          echo "Artifacts directory contents:"
+          ls -R artifacts
 
       - id: create_release
         name: Create GitHub Release
@@ -151,15 +143,30 @@ jobs:
           draft: false
           prerelease: false
 
+      # macOS Assets
+      - name: Find macOS DMG
+        id: find_mac_dmg
+        run: |
+          DMG_PATH=$(ls artifacts/macOS/*.dmg)
+          echo "DMG_PATH=${DMG_PATH}" >> $GITHUB_OUTPUT
+          echo "Found DMG: ${DMG_PATH}"
+
       - name: Upload macOS DMG
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: macOS/*.dmg
+          asset_path: ${{ steps.find_mac_dmg.outputs.DMG_PATH }}
           asset_name: Wing-to-LiveTrax-${{ github.ref_name }}-mac.dmg
           asset_content_type: application/octet-stream
+
+      - name: Find macOS ZIP
+        id: find_mac_zip
+        run: |
+          ZIP_PATH=$(ls artifacts/macOS/*.zip)
+          echo "ZIP_PATH=${ZIP_PATH}" >> $GITHUB_OUTPUT
+          echo "Found ZIP: ${ZIP_PATH}"
 
       - name: Upload macOS ZIP
         uses: actions/upload-release-asset@v1
@@ -167,9 +174,17 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: macOS/*.zip
+          asset_path: ${{ steps.find_mac_zip.outputs.ZIP_PATH }}
           asset_name: Wing-to-LiveTrax-${{ github.ref_name }}-mac.zip
           asset_content_type: application/zip
+
+      # Windows Assets
+      - name: Find Windows EXE
+        id: find_win_exe
+        run: |
+          EXE_PATH=$(ls artifacts/Windows/*.exe)
+          echo "EXE_PATH=${EXE_PATH}" >> $GITHUB_OUTPUT
+          echo "Found EXE: ${EXE_PATH}"
 
       - name: Upload Windows installer
         uses: actions/upload-release-asset@v1
@@ -177,9 +192,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: Windows/*.exe
+          asset_path: ${{ steps.find_win_exe.outputs.EXE_PATH }}
           asset_name: Wing-to-LiveTrax-${{ github.ref_name }}-win.exe
           asset_content_type: application/octet-stream
+
+      - name: Find Windows ZIP
+        id: find_win_zip
+        run: |
+          ZIP_PATH=$(ls artifacts/Windows/*.zip)
+          echo "ZIP_PATH=${ZIP_PATH}" >> $GITHUB_OUTPUT
+          echo "Found ZIP: ${ZIP_PATH}"
 
       - name: Upload Windows ZIP
         uses: actions/upload-release-asset@v1
@@ -187,9 +209,17 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: Windows/*.zip
+          asset_path: ${{ steps.find_win_zip.outputs.ZIP_PATH }}
           asset_name: Wing-to-LiveTrax-${{ github.ref_name }}-win.zip
           asset_content_type: application/zip
+
+      # Linux Assets
+      - name: Find Linux AppImage
+        id: find_linux_appimage
+        run: |
+          APPIMAGE_PATH=$(ls artifacts/Linux/*.AppImage)
+          echo "APPIMAGE_PATH=${APPIMAGE_PATH}" >> $GITHUB_OUTPUT
+          echo "Found AppImage: ${APPIMAGE_PATH}"
 
       - name: Upload Linux AppImage
         uses: actions/upload-release-asset@v1
@@ -197,9 +227,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: Linux/*.AppImage
+          asset_path: ${{ steps.find_linux_appimage.outputs.APPIMAGE_PATH }}
           asset_name: Wing-to-LiveTrax-${{ github.ref_name }}-linux.AppImage
           asset_content_type: application/octet-stream
+
+      - name: Find Linux DEB
+        id: find_linux_deb
+        run: |
+          DEB_PATH=$(ls artifacts/Linux/*.deb)
+          echo "DEB_PATH=${DEB_PATH}" >> $GITHUB_OUTPUT
+          echo "Found DEB: ${DEB_PATH}"
 
       - name: Upload Linux DEB
         uses: actions/upload-release-asset@v1
@@ -207,6 +244,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: Linux/*.deb
+          asset_path: ${{ steps.find_linux_deb.outputs.DEB_PATH }}
           asset_name: Wing-to-LiveTrax-${{ github.ref_name }}-linux.deb
           asset_content_type: application/vnd.debian.binary-package
