@@ -172,11 +172,13 @@ const logEnd = ref(null)
 const showTooltip = ref(false)
 const scheduledTime = ref('')
 const scheduledRecording = ref(null)
+
+// now holds "HH:MM" and is updated every second
 const currentTime = ref('')
 const scheduledTimeValid = ref(false)
 const checkInterval = ref(null)
-const version = ref(import.meta.env.VITE_APP_VERSION);
 
+const version = ref(import.meta.env.VITE_APP_VERSION)
 const groups = ['USB', 'CRD', 'MOD']
 
 function addLog(message) {
@@ -191,12 +193,10 @@ function clearLog() {
 function copyLogs() {
   const logText = log.value.join('\n')
   navigator.clipboard.writeText(logText)
-    .then(() => {
-      addLog('Logs copied to clipboard')
-    })
+    .then(() => addLog('Logs copied to clipboard'))
     .catch(err => {
       addLog('Failed to copy logs: ' + err.message)
-      // Fallback for browsers without Clipboard API
+      // fallback
       const textarea = document.createElement('textarea')
       textarea.value = logText
       document.body.appendChild(textarea)
@@ -204,8 +204,8 @@ function copyLogs() {
       try {
         document.execCommand('copy')
         addLog('Logs copied to clipboard (fallback method)')
-      } catch (fallbackErr) {
-        addLog('Failed to copy logs: ' + fallbackErr.message)
+      } catch {
+        addLog('Failed to copy logs: fallback failed')
       }
       document.body.removeChild(textarea)
     })
@@ -213,11 +213,11 @@ function copyLogs() {
 
 function updateCurrentTime() {
   const now = new Date()
-  const hours = String(now.getHours()).padStart(2, '0')
-  const minutes = String(now.getMinutes()).padStart(2, '0')
-  currentTime.value = `${hours}:${minutes}`
+  const hh = String(now.getHours()).padStart(2, '0')
+  const mm = String(now.getMinutes()).padStart(2, '0')
+  currentTime.value = `${hh}:${mm}`
 
-  // Check if scheduled recording should start
+  // auto-start if scheduled hits current
   if (scheduledRecording.value && scheduledTime.value === currentTime.value) {
     startRecording()
     scheduledRecording.value = null
@@ -230,41 +230,28 @@ function validateScheduledTime() {
     scheduledTimeValid.value = false
     return
   }
-
-  const [scheduledHours, scheduledMinutes] = scheduledTime.value.split(':').map(Number)
-  const [currentHours, currentMinutes] = currentTime.value.split(':').map(Number)
-
-  scheduledTimeValid.value = (scheduledHours > currentHours) ||
-    (scheduledHours === currentHours && scheduledMinutes > currentMinutes)
+  const [sh, sm] = scheduledTime.value.split(':').map(Number)
+  const [ch, cm] = currentTime.value.split(':').map(Number)
+  scheduledTimeValid.value = (sh > ch) || (sh === ch && sm > cm)
 }
 
 function scheduleRecording() {
   if (!scheduledTimeValid.value) return
 
-  // Cancel any existing scheduled recording
   if (scheduledRecording.value) {
     addLog(`Cancelled previous scheduled recording (was ${scheduledRecording.value.time})`)
     stopCheckInterval()
   }
 
-  scheduledRecording.value = {
-    time: scheduledTime.value,
-    timestamp: Date.now()
-  }
+  scheduledRecording.value = { time: scheduledTime.value, timestamp: Date.now() }
   addLog(`Recording scheduled for ${scheduledTime.value}`)
 
-  // Start checking every second when close to scheduled time
-  const [scheduledHours, scheduledMinutes] = scheduledTime.value.split(':').map(Number)
+  const [sh, sm] = scheduledTime.value.split(':').map(Number)
   const now = new Date()
-  const targetTime = new Date()
-  targetTime.setHours(scheduledHours)
-  targetTime.setMinutes(scheduledMinutes)
-  targetTime.setSeconds(0)
-
-  const diffMs = targetTime - now
-  if (diffMs < 5 * 60 * 1000) { // If within 5 minutes
-    startCheckInterval()
-  }
+  const target = new Date()
+  target.setHours(sh, sm, 0, 0)
+  const diffMs = target - now
+  if (diffMs < 5 * 60 * 1000) startCheckInterval()
 }
 
 function cancelScheduledRecording() {
@@ -276,9 +263,7 @@ function cancelScheduledRecording() {
 
 function startCheckInterval() {
   stopCheckInterval()
-  checkInterval.value = setInterval(() => {
-    updateCurrentTime()
-  }, 1000)
+  checkInterval.value = setInterval(updateCurrentTime, 1000)
 }
 
 function stopCheckInterval() {
@@ -288,73 +273,57 @@ function stopCheckInterval() {
   }
 }
 
+// now timeRemaining depends on currentTime, so it re-computes every second
 const timeRemaining = computed(() => {
   if (!scheduledRecording.value) return ''
 
-  const now = new Date()
-  const [scheduledHours, scheduledMinutes] = scheduledTime.value.split(':').map(Number)
+  const [ch, cm] = currentTime.value.split(':').map(Number)
+  const [sh, sm] = scheduledTime.value.split(':').map(Number)
 
-  const targetTime = new Date()
-  targetTime.setHours(scheduledHours)
-  targetTime.setMinutes(scheduledMinutes)
-  targetTime.setSeconds(0)
+  const now = new Date(); now.setHours(ch, cm, 0, 0)
+  const target = new Date(); target.setHours(sh, sm, 0, 0)
+  const diffMins = Math.round((target - now) / 60000)
 
-  const diffMs = targetTime - now
-  const diffMins = Math.round(diffMs / 60000)
+  if (diffMins <= 0) return 'now'
+  if (diffMins < 60) return `in ${diffMins} minute${diffMins !== 1 ? 's' : ''}`
 
-  if (diffMins <= 0) {
-    return 'now'
-  } else if (diffMins < 60) {
-    return `in ${diffMins} minute${diffMins !== 1 ? 's' : ''}`
-  } else {
-    const hours = Math.floor(diffMins / 60)
-    const mins = diffMins % 60
-    return `in ${hours} hour${hours !== 1 ? 's' : ''}${mins > 0 ? ` ${mins} minute${mins !== 1 ? 's' : ''}` : ''}`
-  }
+  const hrs = Math.floor(diffMins / 60)
+  const mins = diffMins % 60
+  return `in ${hrs} hour${hrs !== 1 ? 's' : ''}${mins > 0 ? ` ${mins} minute${mins !== 1 ? 's' : ''}` : ''}`
 })
 
-// auto-scroll
+// auto-scroll log
 watch(log, async () => {
   await nextTick()
   logEnd.value?.scrollIntoView({ behavior: 'smooth' })
 })
 
 onMounted(() => {
+  // tick every second for live countdown
   updateCurrentTime()
-  // Check every minute normally
-  const timer = setInterval(updateCurrentTime, 60000)
+  const clock = setInterval(updateCurrentTime, 1000)
   onBeforeUnmount(() => {
-    clearInterval(timer)
+    clearInterval(clock)
     stopCheckInterval()
   })
 
-  // subscribe to back-end logs
-  window.electronAPI.on('log', msg => {
-    addLog(msg)
-  })
+  // backend logs
+  window.electronAPI.on('log', msg => addLog(msg))
 })
 
 function transferNames() {
   addLog(`Transferring channel names from ${wingIP.value} to ${liveTraxIP.value} (Group: ${sourceGroup.value})`)
-  window.electronAPI.send('transfer-names', {
-    wingIP: wingIP.value,
-    liveTraxIP: liveTraxIP.value,
-    sourceGroup: sourceGroup.value
-  })
+  window.electronAPI.send('transfer-names', { wingIP: wingIP.value, liveTraxIP: liveTraxIP.value, sourceGroup: sourceGroup.value })
 }
 
 function startRecording() {
   addLog(`Starting recording on Live Trax at ${liveTraxIP.value}`)
-  window.electronAPI.send('start-recording', {
-    liveTraxIP: liveTraxIP.value
-  })
+  window.electronAPI.send('start-recording', { liveTraxIP: liveTraxIP.value })
 }
 
 function stopRecording() {
   addLog(`Stopping recording on Live Trax at ${liveTraxIP.value}`)
-  window.electronAPI.send('stop-recording', {
-    liveTraxIP: liveTraxIP.value
-  })
+  window.electronAPI.send('stop-recording', { liveTraxIP: liveTraxIP.value })
 }
 </script>
 

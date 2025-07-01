@@ -1,80 +1,208 @@
-# .github/workflows/release.yml
-name: Build, Sign, and Release
+name: Release
 
+# fire on any new semver tag
 on:
   push:
     tags:
-      - 'v*'
+      - 'v*.*.*'
+
+# give the default GITHUB_TOKEN permission to write releases
+permissions:
+  contents: write
+
+env:
+  NODE_VERSION: '24.x'
 
 jobs:
-  mac-release:
+  build-mac:
+    name: macOS
     runs-on: macos-latest
-    timeout-minutes: 45
-    permissions:
-      contents: write
-
     steps:
-      # 1) Checkout full history for correct versioning
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - uses: actions/checkout@v4
 
-      # 2) Setup Node.js & cache deps
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v3
         with:
-          node-version: '20'
-          cache: npm
+          node-version: ${{ env.NODE_VERSION }}
 
-      - name: Install dependencies
-        run: npm ci
-
-      # 3) Import your Developer ID cert
-      - name: Import code-signing certificate
-        uses: apple-actions/import-codesign-certs@v2
+      - name: Cache npm
+        uses: actions/cache@v3
         with:
-          p12-file-base64: ${{ secrets.MAC_CERTIFICATE }}
-          p12-password: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
-          keychain: build
-          keychain-password: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
 
-      # 4) Build, sign, notarize (staple), and package
-      - name: Build & Notarize macOS
+      - run: npm ci
+
+      - name: Import macOS signing cert
+        run: |
+          echo "${{ secrets.MAC_CERTIFICATE }}" | base64 --decode > mac_cert.p12
+          security create-keychain -p "" build.keychain
+          security import mac_cert.p12 \
+            -k build.keychain \
+            -P "${{ secrets.MAC_CERTIFICATE_PASSWORD }}" \
+            -T /usr/bin/codesign
+          security list-keychains -s build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "" build.keychain
+          security set-keychain-settings -t 3600 -l build.keychain
+
+      - name: Build & notarize macOS
         env:
+          CSC_LINK: mac_cert.p12
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: P76H6523Q4
-          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-          CSC_NAME: 'Austin Ginn (P76H6523Q4)'
-        run: |
-          npx electron-builder \
-            --mac --arm64 \
-            --publish=never \
-            --config.mac.notarize=true
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: npm run dist:mac
 
-      # 5) Verify the signed & stapled .app
-      - name: Verify code-signing & notarization
-        run: |
-          APP="dist/mac-arm64/Wing to LiveTrax.app"
-          echo "Verifying $APP"
-          codesign -dv --verbose=4 "$APP"
-          spctl -a -vv --type install "$APP"
-          xcrun stapler validate "$APP"
-
-      # 6) Upload the DMG artifact for manual inspection
-      - name: Upload DMG artifact
-        uses: actions/upload-artifact@v4
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v3
         with:
-          name: Wing-to-LiveTrax-macOS
-          path: dist/*.dmg
+          name: macOS
+          path: |
+            dist/mac/*.dmg
+            dist/mac/*.zip
 
-      # 7) Create GitHub Release and attach the DMG
+  build-windows:
+    name: Windows
+    runs-on: windows-latest
+    needs: build-mac
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Cache npm
+        uses: actions/cache@v3
+        with:
+          path: C:\Users\runneradmin\AppData\Roaming\npm
+          key: windows-npm-${{ hashFiles('package-lock.json') }}
+
+      - run: npm ci
+
+      - name: Build Windows (unsigned)
+        run: npm run dist:win
+
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: Windows
+          path: |
+            dist/win*-nsis/*.exe
+            dist/win*-nsis/*.zip
+
+  build-linux:
+    name: Linux
+    runs-on: ubuntu-latest
+    needs: build-mac
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Cache npm
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: linux-npm-${{ hashFiles('package-lock.json') }}
+
+      - run: npm ci
+
+      - name: Build Linux (unsigned)
+        run: npm run dist:linux
+
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: Linux
+          path: |
+            dist/linux/*.AppImage
+            dist/linux/*.deb
+
+  release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs:
+      - build-mac
+      - build-windows
+      - build-linux
+    steps:
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: macOS
+
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: Windows
+
+      - name: Download Linux artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: Linux
+
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+        id: create_release
+        uses: actions/create-release@v1
         with:
-          tag_name: ${{ github.ref_name }}
-          name:      ${{ github.ref_name }}
-          files:     dist/*.dmg
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref_name }}
+          body: |
+            Automated release for ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+
+      - name: Upload macOS DMG
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/mac/*.dmg
+          asset_name: Wing-to-LiveTrax-${{ github.ref_name }}-mac.dmg
+          asset_content_type: application/octet-stream
+
+      - name: Upload macOS ZIP
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/mac/*.zip
+          asset_name: Wing-to-LiveTrax-${{ github.ref_name }}-mac.zip
+          asset_content_type: application/zip
+
+      - name: Upload Windows installer
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/win*-nsis/*.exe
+          asset_name: Wing-to-LiveTrax-${{ github.ref_name }}-win.exe
+          asset_content_type: application/octet-stream
+
+      - name: Upload Windows ZIP
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/win*-nsis/*.zip
+          asset_name: Wing-to-LiveTrax-${{ github.ref_name }}-win.zip
+          asset_content_type: application/zip
+
+      - name: Upload Linux AppImage
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/linux/*.AppImage
+          asset_name: Wing-to-LiveTrax-${{ github.ref_name }}-linux.AppImage
+          asset_content_type: application/octet-stream
+
+      - name: Upload Linux DEB
+        uses: actions/upload-release-asset@v1
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: dist/linux/*.deb
+          asset_name: Wing-to-LiveTrax-${{ github.ref_name }}-linux.deb
+          asset_content_type: application/vnd.debian.binary-package
