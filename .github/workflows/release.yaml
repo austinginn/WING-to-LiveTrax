@@ -125,7 +125,12 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts
-          
+
+      - name: Setup GitHub CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gh
+
       - name: Debug directory structure
         run: |
           echo "Artifacts directory contents:"
@@ -144,106 +149,94 @@ jobs:
           prerelease: false
 
       # macOS Assets
-      - name: Find macOS DMG
-        id: find_mac_dmg
+      - name: Find and Upload macOS DMG
         run: |
-          DMG_PATH=$(ls artifacts/macOS/*.dmg)
-          echo "DMG_PATH=${DMG_PATH}" >> $GITHUB_OUTPUT
-          echo "Found DMG: ${DMG_PATH}"
-
-      - name: Upload macOS DMG
-        uses: actions/upload-release-asset@v1
+          if ls artifacts/macOS/*.dmg 1> /dev/null 2>&1; then
+            DMG_PATH=$(ls artifacts/macOS/*.dmg | head -1)
+            echo "Uploading $DMG_PATH"
+            gh release upload ${{ github.ref_name }} "$DMG_PATH" \
+              --clobber \
+              --repo ${{ github.repository }} \
+              --name "Wing-to-LiveTrax-${{ github.ref_name }}-mac.dmg"
+          else
+            echo "No macOS DMG found to upload"
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.find_mac_dmg.outputs.DMG_PATH }}
-          asset_name: Wing-to-LiveTrax-${{ github.ref_name }}-mac.dmg
-          asset_content_type: application/octet-stream
 
-      - name: Find macOS ZIP
-        id: find_mac_zip
+      - name: Find and Upload macOS ZIP
         run: |
-          ZIP_PATH=$(ls artifacts/macOS/*.zip)
-          echo "ZIP_PATH=${ZIP_PATH}" >> $GITHUB_OUTPUT
-          echo "Found ZIP: ${ZIP_PATH}"
-
-      - name: Upload macOS ZIP
-        uses: actions/upload-release-asset@v1
+          if ls artifacts/macOS/*.zip 1> /dev/null 2>&1; then
+            ZIP_PATH=$(ls artifacts/macOS/*.zip | head -1)
+            echo "Uploading $ZIP_PATH"
+            gh release upload ${{ github.ref_name }} "$ZIP_PATH" \
+              --clobber \
+              --repo ${{ github.repository }} \
+              --name "Wing-to-LiveTrax-${{ github.ref_name }}-mac.zip"
+          else
+            echo "No macOS ZIP found to upload"
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.find_mac_zip.outputs.ZIP_PATH }}
-          asset_name: Wing-to-LiveTrax-${{ github.ref_name }}-mac.zip
-          asset_content_type: application/zip
 
       # Windows Assets
-      - name: Find Windows EXE
-        id: find_win_exe
+      - name: Find and Upload Windows EXE
         run: |
-          EXE_PATH=$(ls artifacts/Windows/*.exe)
-          echo "EXE_PATH=${EXE_PATH}" >> $GITHUB_OUTPUT
-          echo "Found EXE: ${EXE_PATH}"
-
-      - name: Upload Windows installer
-        uses: actions/upload-release-asset@v1
+          if ls artifacts/Windows/*.exe 1> /dev/null 2>&1; then
+            EXE_PATH=$(ls artifacts/Windows/*.exe | head -1)
+            echo "Uploading $EXE_PATH"
+            gh release upload ${{ github.ref_name }} "$EXE_PATH" \
+              --clobber \
+              --repo ${{ github.repository }} \
+              --name "Wing-to-LiveTrax-${{ github.ref_name }}-win.exe"
+          else
+            echo "No Windows EXE found to upload"
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.find_win_exe.outputs.EXE_PATH }}
-          asset_name: Wing-to-LiveTrax-${{ github.ref_name }}-win.exe
-          asset_content_type: application/octet-stream
 
-      - name: Find Windows ZIP
-        id: find_win_zip
+      - name: Find and Upload Windows ZIP
         run: |
-          ZIP_PATH=$(ls artifacts/Windows/*.zip)
-          echo "ZIP_PATH=${ZIP_PATH}" >> $GITHUB_OUTPUT
-          echo "Found ZIP: ${ZIP_PATH}"
-
-      - name: Upload Windows ZIP
-        uses: actions/upload-release-asset@v1
+          if ls artifacts/Windows/*.zip 1> /dev/null 2>&1; then
+            ZIP_PATH=$(ls artifacts/Windows/*.zip | head -1)
+            echo "Uploading $ZIP_PATH"
+            gh release upload ${{ github.ref_name }} "$ZIP_PATH" \
+              --clobber \
+              --repo ${{ github.repository }} \
+              --name "Wing-to-LiveTrax-${{ github.ref_name }}-win.zip"
+          else
+            echo "No Windows ZIP found to upload"
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.find_win_zip.outputs.ZIP_PATH }}
-          asset_name: Wing-to-LiveTrax-${{ github.ref_name }}-win.zip
-          asset_content_type: application/zip
 
       # Linux Assets
-      - name: Find Linux AppImage
-        id: find_linux_appimage
+      - name: Find and Upload Linux AppImage
         run: |
-          APPIMAGE_PATH=$(ls artifacts/Linux/*.AppImage)
-          echo "APPIMAGE_PATH=${APPIMAGE_PATH}" >> $GITHUB_OUTPUT
-          echo "Found AppImage: ${APPIMAGE_PATH}"
-
-      - name: Upload Linux AppImage
-        uses: actions/upload-release-asset@v1
+          if ls artifacts/Linux/*.AppImage 1> /dev/null 2>&1; then
+            APPIMAGE_PATH=$(ls artifacts/Linux/*.AppImage | head -1)
+            echo "Uploading $APPIMAGE_PATH"
+            gh release upload ${{ github.ref_name }} "$APPIMAGE_PATH" \
+              --clobber \
+              --repo ${{ github.repository }} \
+              --name "Wing-to-LiveTrax-${{ github.ref_name }}-linux.AppImage"
+          else
+            echo "No Linux AppImage found to upload"
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.find_linux_appimage.outputs.APPIMAGE_PATH }}
-          asset_name: Wing-to-LiveTrax-${{ github.ref_name }}-linux.AppImage
-          asset_content_type: application/octet-stream
 
-      - name: Find Linux DEB
-        id: find_linux_deb
+      - name: Find and Upload Linux DEB
         run: |
-          DEB_PATH=$(ls artifacts/Linux/*.deb)
-          echo "DEB_PATH=${DEB_PATH}" >> $GITHUB_OUTPUT
-          echo "Found DEB: ${DEB_PATH}"
-
-      - name: Upload Linux DEB
-        uses: actions/upload-release-asset@v1
+          if ls artifacts/Linux/*.deb 1> /dev/null 2>&1; then
+            DEB_PATH=$(ls artifacts/Linux/*.deb | head -1)
+            echo "Uploading $DEB_PATH"
+            gh release upload ${{ github.ref_name }} "$DEB_PATH" \
+              --clobber \
+              --repo ${{ github.repository }} \
+              --name "Wing-to-LiveTrax-${{ github.ref_name }}-linux.deb"
+          else
+            echo "No Linux DEB found to upload"
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.find_linux_deb.outputs.DEB_PATH }}
-          asset_name: Wing-to-LiveTrax-${{ github.ref_name }}-linux.deb
-          asset_content_type: application/vnd.debian.binary-package
