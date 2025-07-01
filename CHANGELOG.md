@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.0.5](https://github.com/austinginn/WING-to-LiveTrax/compare/v1.0.4...v1.0.5) (2025-07-01)
+
+
+### Bug Fixes
+
+* Moving to fresh dev account ([f24b818](https://github.com/austinginn/WING-to-LiveTrax/commit/f24b8184ad5792ef0bdabc80412b0ee2b8c332a0))
+* timer and countdown ([bef4098](https://github.com/austinginn/WING-to-LiveTrax/commit/bef409800ebbd8554f02f92b9a644540d0178370))
+
 ### [1.0.4](https://github.com/austinginn/WING-to-LiveTrax/compare/v1.0.3...v1.0.4) (2025-06-28)
 
 
