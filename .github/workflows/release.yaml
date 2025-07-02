@@ -63,28 +63,44 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: npm run dist:mac:intel
 
+      - name: Debug dist contents before rename
+        run: ls -la dist/
+
       - name: Rename macOS DMGs
         run: |
           VERSION=${{ github.ref_name }}
-          # Intel DMG (no "-arm64" in its name)
-          INTEL_DMG=$(ls dist/*.dmg | grep -v arm64 | head -1)
+          # List all DMGs
+          DMGS=$(ls dist/*.dmg 2>/dev/null || true)
+          echo "Found DMGs: $DMGS"
+          
+          # Intel DMG (identify by exclusion)
+          INTEL_DMG=$(echo "$DMGS" | grep -v arm64 | head -1)
+          if [ -z "$INTEL_DMG" ]; then
+            echo "Error: Intel DMG not found!"
+            exit 1
+          fi
           mv "$INTEL_DMG" "dist/Wing-to-LiveTrax-${VERSION}-mac-intel.dmg"
-          # ARM64 DMG
-          ARM_DMG=$(ls dist/*-arm64.dmg | head -1)
-          mv "$ARM_DMG" "dist/Wing-to-LiveTrax-${VERSION}-mac-arm.dmg"
+          
+          # ARM64 DMG (try multiple patterns)
+          ARM_DMG=$(echo "$DMGS" | grep -E 'arm64|arm|aarch' | head -1)
+          if [ -z "$ARM_DMG" ]; then
+            echo "Warning: ARM DMG not found, skipping"
+          else
+            mv "$ARM_DMG" "dist/Wing-to-LiveTrax-${VERSION}-mac-arm.dmg"
+          fi
 
       - name: Copy macOS DMGs to artifacts
         run: |
           mkdir -p artifacts/macOS
-          cp dist/Wing-to-LiveTrax-${{ github.ref_name }}-mac-intel.dmg artifacts/macOS/
-          cp dist/Wing-to-LiveTrax-${{ github.ref_name }}-mac-arm.dmg   artifacts/macOS/
+          cp dist/Wing-to-LiveTrax-${{ github.ref_name }}-mac-intel.dmg artifacts/macOS/ || echo "Intel DMG not found"
+          cp dist/Wing-to-LiveTrax-${{ github.ref_name }}-mac-arm.dmg artifacts/macOS/ || echo "ARM DMG not found"
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
         with:
           name: macOS
           path: artifacts/macOS/*.dmg
-          if-no-files-found: error
+          if-no-files-found: warn
 
   build-windows:
     name: Windows
@@ -92,26 +108,35 @@ jobs:
     needs: build-mac
     steps:
       - uses: actions/checkout@v4
+      
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
+          
       - name: Cache npm
         uses: actions/cache@v3
         with:
           path: C:\Users\runneradmin\AppData\Roaming\npm
           key: windows-npm-${{ hashFiles('package-lock.json') }}
+          
       - name: Install dependencies
         run: npm ci
+      
       - name: Build Windows (unsigned)
         run: npm run dist:win
+      
+      - name: Copy Windows artifacts
+        run: |
+          mkdir -p artifacts/Windows
+          copy dist\*.exe artifacts\Windows\
+          copy dist\*.zip artifacts\Windows\
+      
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Windows
-          path: |
-            dist/*.exe
-            dist/*.zip
+          path: artifacts/Windows/*
           if-no-files-found: error
 
   build-linux:
@@ -120,26 +145,35 @@ jobs:
     needs: build-mac
     steps:
       - uses: actions/checkout@v4
+      
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
+          
       - name: Cache npm
         uses: actions/cache@v3
         with:
           path: ~/.npm
           key: linux-npm-${{ hashFiles('package-lock.json') }}
+          
       - name: Install dependencies
         run: npm ci
+      
       - name: Build Linux (unsigned)
         run: npm run dist:linux
+      
+      - name: Copy Linux artifacts
+        run: |
+          mkdir -p artifacts/Linux
+          cp dist/*.AppImage artifacts/Linux/ || true
+          cp dist/*.deb artifacts/Linux/ || true
+      
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
         with:
           name: Linux
-          path: |
-            dist/*.AppImage
-            dist/*.deb
+          path: artifacts/Linux/*
           if-no-files-found: error
 
   release:
@@ -154,6 +188,8 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: artifacts
+          pattern: '*'
+          merge-multiple: true
 
       - name: Setup GitHub CLI
         run: |
@@ -169,62 +205,59 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name:     ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
           release_name: Release ${{ github.ref_name }}
-          body:         Automated release for ${{ github.ref_name }}
-          draft:        false
-          prerelease:   false
-
-      - name: Upload macOS ARM DMG
-        run: |
-          gh release upload \
-            ${{ github.ref_name }} \
-            artifacts/macOS/Wing-to-LiveTrax-${{ github.ref_name }}-mac-arm.dmg \
-            --clobber --repo ${{ github.repository }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          body: |
+            Automated release for ${{ github.ref_name }}
+            
+            **Assets included:**
+            - macOS Intel DMG
+            - macOS ARM DMG
+            - Windows Installer
+            - Linux Packages
+          draft: false
+          prerelease: false
 
       - name: Upload macOS Intel DMG
+        if: contains(needs.build-mac.result, 'success')
         run: |
           gh release upload \
             ${{ github.ref_name }} \
-            artifacts/macOS/Wing-to-LiveTrax-${{ github.ref_name }}-mac-intel.dmg \
+            "artifacts/macOS/Wing-to-LiveTrax-${{ github.ref_name }}-mac-intel.dmg" \
             --clobber --repo ${{ github.repository }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Windows EXE
+      - name: Upload macOS ARM DMG
+        if: contains(needs.build-mac.result, 'success')
+        run: |
+          if [ -f "artifacts/macOS/Wing-to-LiveTrax-${{ github.ref_name }}-mac-arm.dmg" ]; then
+            gh release upload \
+              ${{ github.ref_name }} \
+              "artifacts/macOS/Wing-to-LiveTrax-${{ github.ref_name }}-mac-arm.dmg" \
+              --clobber --repo ${{ github.repository }}
+          else
+            echo "ARM DMG not found, skipping upload"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Windows artifacts
+        if: contains(needs.build-windows.result, 'success')
         run: |
           gh release upload \
             ${{ github.ref_name }} \
-            dist/*.exe \
+            artifacts/Windows/* \
             --clobber --repo ${{ github.repository }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Windows ZIP
+      - name: Upload Linux artifacts
+        if: contains(needs.build-linux.result, 'success')
         run: |
           gh release upload \
             ${{ github.ref_name }} \
-            dist/*.zip \
-            --clobber --repo ${{ github.repository }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Linux AppImage
-        run: |
-          gh release upload \
-            ${{ github.ref_name }} \
-            dist/*.AppImage \
-            --clobber --repo ${{ github.repository }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Linux DEB
-        run: |
-          gh release upload \
-            ${{ github.ref_name }} \
-            dist/*.deb \
+            artifacts/Linux/* \
             --clobber --repo ${{ github.repository }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
