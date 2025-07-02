@@ -21,7 +21,7 @@ WING to LiveTrax lets you synchronize your WING output group source names direct
    - Select the **Source Group** (USB, MOD, CRD) that you are using for multi-tracking.
 
 4. **Start Transfer**  
-   Click **Start Transfer**. The app will connect to your WING, and trigger recordings in LiveTrax.
+   Click **Start Transfer**. The app will connect to your WING, note the sources from your selected output group, and then grab the names for each of those sources.
 
 5. **Monitor Logs**  
    The built-in log panel shows connection status, timeouts, and success messages. Use it to verify that communication between the WING and LiveTrax is flowing correctly.
