@@ -28,6 +28,7 @@ jobs:
           key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
       - name: Install dependencies
         run: npm ci
+
       - name: Import macOS signing cert
         run: |
           echo "${{ secrets.MAC_CERTIFICATE }}" | base64 --decode > mac_cert.p12
@@ -40,7 +41,8 @@ jobs:
           security default-keychain -s build.keychain
           security unlock-keychain -p "" build.keychain
           security set-keychain-settings -t 3600 -l build.keychain
-      - name: Build & notarize macOS (arm64)
+
+      - name: Build & notarize macOS (ARM64)
         env:
           CSC_LINK: mac_cert.p12
           CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
@@ -49,7 +51,6 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: npm run dist:mac
 
-      # build intel
       - name: Build & notarize macOS (Intel x64)
         env:
           CSC_LINK: mac_cert.p12
@@ -59,33 +60,28 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: npm run dist:mac:intel
 
-      # rename the intel build
-      - name: Rename Intel macOS artifacts
+      - name: Rename macOS DMGs
         run: |
-          for file in dist/*.dmg dist/*.zip; do
-            if [[ "$file" == *x64* || "$file" == *"mac"* ]]; then
-              base=$(basename "$file")
-              ext="${base##*.}"
-              if [[ ! "$base" =~ "intel" ]]; then
-                mv "$file" "dist/Wing-to-LiveTrax-${{ github.ref_name }}-mac-intel.$ext"
-              fi
+          VERSION=${{ github.ref_name }}
+          for dmg in dist/*.dmg; do
+            base=$(basename "$dmg" .dmg)
+            if [[ "$base" == *mac-intel ]]; then
+              mv "$dmg" "dist/Wing-to-LiveTrax-${VERSION}-mac-intel.dmg"
+            else
+              mv "$dmg" "dist/Wing-to-LiveTrax-${VERSION}-mac-arm.dmg"
             fi
           done
 
-      # copy to artifacts
-      - name: Copy macOS builds to artifacts
+      - name: Copy macOS DMGs to artifacts
         run: |
           mkdir -p artifacts/macOS
           cp dist/*.dmg artifacts/macOS/
-          cp dist/*.zip artifacts/macOS/
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
         with:
           name: macOS
-          path: |
-            artifacts/macOS/*.dmg
-            artifacts/macOS/*.zip
+          path: artifacts/macOS/*.dmg
           if-no-files-found: error
 
   build-windows:
@@ -179,102 +175,38 @@ jobs:
           draft: false
           prerelease: false
 
-      # macOS ARM assets
-      - name: Find and Upload macOS ARM DMG
+      - name: Upload macOS ARM DMG
         run: |
-          if ls artifacts/macOS/*mac.dmg 1> /dev/null 2>&1; then
-            DMG_PATH=$(ls artifacts/macOS/*mac.dmg | grep -v intel | head -1)
-            echo "Uploading $DMG_PATH"
-            gh release upload ${{ github.ref_name }} "$DMG_PATH" --clobber --repo ${{ github.repository }}
-          else
-            echo "No macOS ARM DMG found to upload"
-          fi
+          gh release upload ${{ github.ref_name }} artifacts/macOS/*-mac-arm.dmg --clobber --repo ${{ github.repository }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Find and Upload macOS ARM ZIP
+      - name: Upload macOS Intel DMG
         run: |
-          if ls artifacts/macOS/*mac.zip 1> /dev/null 2>&1; then
-            ZIP_PATH=$(ls artifacts/macOS/*mac.zip | grep -v intel | head -1)
-            echo "Uploading $ZIP_PATH"
-            gh release upload ${{ github.ref_name }} "$ZIP_PATH" --clobber --repo ${{ github.repository }}
-          else
-            echo "No macOS ARM ZIP found to upload"
-          fi
+          gh release upload ${{ github.ref_name }} artifacts/macOS/*-mac-intel.dmg --clobber --repo ${{ github.repository }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # macOS Intel assets
-      - name: Find and Upload macOS Intel DMG
+      - name: Upload Windows EXE
         run: |
-          if ls artifacts/macOS/*mac-intel.dmg 1> /dev/null 2>&1; then
-            DMG_PATH=$(ls artifacts/macOS/*mac-intel.dmg | head -1)
-            echo "Uploading $DMG_PATH"
-            gh release upload ${{ github.ref_name }} "$DMG_PATH" --clobber --repo ${{ github.repository }}
-          else
-            echo "No macOS Intel DMG found to upload"
-          fi
+          gh release upload ${{ github.ref_name }} dist/*.exe --clobber --repo ${{ github.repository }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Find and Upload macOS Intel ZIP
+      - name: Upload Windows ZIP
         run: |
-          if ls artifacts/macOS/*mac-intel.zip 1> /dev/null 2>&1; then
-            ZIP_PATH=$(ls artifacts/macOS/*mac-intel.zip | head -1)
-            echo "Uploading $ZIP_PATH"
-            gh release upload ${{ github.ref_name }} "$ZIP_PATH" --clobber --repo ${{ github.repository }}
-          else
-            echo "No macOS Intel ZIP found to upload"
-          fi
+          gh release upload ${{ github.ref_name }} dist/*.zip --clobber --repo ${{ github.repository }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Windows
-      - name: Find and Upload Windows EXE
+      - name: Upload Linux AppImage
         run: |
-          if ls artifacts/Windows/*.exe 1> /dev/null 2>&1; then
-            EXE_PATH=$(ls artifacts/Windows/*.exe | head -1)
-            echo "Uploading $EXE_PATH"
-            gh release upload ${{ github.ref_name }} "$EXE_PATH" --clobber --repo ${{ github.repository }}
-          else
-            echo "No Windows EXE found to upload"
-          fi
+          gh release upload ${{ github.ref_name }} dist/*.AppImage --clobber --repo ${{ github.repository }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Find and Upload Windows ZIP
+      - name: Upload Linux DEB
         run: |
-          if ls artifacts/Windows/*.zip 1> /dev/null 2>&1; then
-            ZIP_PATH=$(ls artifacts/Windows/*.zip | head -1)
-            echo "Uploading $ZIP_PATH"
-            gh release upload ${{ github.ref_name }} "$ZIP_PATH" --clobber --repo ${{ github.repository }}
-          else
-            echo "No Windows ZIP found to upload"
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      # Linux
-      - name: Find and Upload Linux AppImage
-        run: |
-          if ls artifacts/Linux/*.AppImage 1> /dev/null 2>&1; then
-            APPIMAGE_PATH=$(ls artifacts/Linux/*.AppImage | head -1)
-            echo "Uploading $APPIMAGE_PATH"
-            gh release upload ${{ github.ref_name }} "$APPIMAGE_PATH" --clobber --repo ${{ github.repository }}
-          else
-            echo "No Linux AppImage found to upload"
-          fi
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Find and Upload Linux DEB
-        run: |
-          if ls artifacts/Linux/*.deb 1> /dev/null 2>&1; then
-            DEB_PATH=$(ls artifacts/Linux/*.deb | head -1)
-            echo "Uploading $DEB_PATH"
-            gh release upload ${{ github.ref_name }} "$DEB_PATH" --clobber --repo ${{ github.repository }}
-          else
-            echo "No Linux DEB found to upload"
-          fi
+          gh release upload ${{ github.ref_name }} dist/*.deb --clobber --repo ${{ github.repository }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
