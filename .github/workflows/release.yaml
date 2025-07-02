@@ -40,7 +40,7 @@ jobs:
           security default-keychain -s build.keychain
           security unlock-keychain -p "" build.keychain
           security set-keychain-settings -t 3600 -l build.keychain
-      - name: Build & notarize macOS
+      - name: Build & notarize macOS (arm64)
         env:
           CSC_LINK: mac_cert.p12
           CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
@@ -48,13 +48,44 @@ jobs:
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: npm run dist:mac
+
+      # build intel
+      - name: Build & notarize macOS (Intel x64)
+        env:
+          CSC_LINK: mac_cert.p12
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: npm run dist:mac:intel
+
+      # rename the intel build
+      - name: Rename Intel macOS artifacts
+        run: |
+          for file in dist/*.dmg dist/*.zip; do
+            if [[ "$file" == *x64* || "$file" == *"mac"* ]]; then
+              base=$(basename "$file")
+              ext="${base##*.}"
+              if [[ ! "$base" =~ "intel" ]]; then
+                mv "$file" "dist/Wing-to-LiveTrax-${{ github.ref_name }}-mac-intel.$ext"
+              fi
+            fi
+          done
+
+      # copy to artifacts
+      - name: Copy macOS builds to artifacts
+        run: |
+          mkdir -p artifacts/macOS
+          cp dist/*.dmg artifacts/macOS/
+          cp dist/*.zip artifacts/macOS/
+
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
         with:
           name: macOS
           path: |
-            dist/*.dmg
-            dist/*.zip
+            artifacts/macOS/*.dmg
+            artifacts/macOS/*.zip
           if-no-files-found: error
 
   build-windows:
@@ -148,47 +179,63 @@ jobs:
           draft: false
           prerelease: false
 
-      # macOS Assets
-      - name: Find and Upload macOS DMG
+      # macOS ARM assets
+      - name: Find and Upload macOS ARM DMG
         run: |
-          if ls artifacts/macOS/*.dmg 1> /dev/null 2>&1; then
-            DMG_PATH=$(ls artifacts/macOS/*.dmg | head -1)
-            echo "Renaming and uploading $DMG_PATH"
-            cp "$DMG_PATH" "Wing-to-LiveTrax-${{ github.ref_name }}-mac.dmg"
-            gh release upload ${{ github.ref_name }} "Wing-to-LiveTrax-${{ github.ref_name }}-mac.dmg" \
-              --clobber \
-              --repo ${{ github.repository }}
+          if ls artifacts/macOS/*mac.dmg 1> /dev/null 2>&1; then
+            DMG_PATH=$(ls artifacts/macOS/*mac.dmg | grep -v intel | head -1)
+            echo "Uploading $DMG_PATH"
+            gh release upload ${{ github.ref_name }} "$DMG_PATH" --clobber --repo ${{ github.repository }}
           else
-            echo "No macOS DMG found to upload"
+            echo "No macOS ARM DMG found to upload"
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Find and Upload macOS ZIP
+      - name: Find and Upload macOS ARM ZIP
         run: |
-          if ls artifacts/macOS/*.zip 1> /dev/null 2>&1; then
-            ZIP_PATH=$(ls artifacts/macOS/*.zip | head -1)
-            echo "Renaming and uploading $ZIP_PATH"
-            cp "$ZIP_PATH" "Wing-to-LiveTrax-${{ github.ref_name }}-mac.zip"
-            gh release upload ${{ github.ref_name }} "Wing-to-LiveTrax-${{ github.ref_name }}-mac.zip" \
-              --clobber \
-              --repo ${{ github.repository }}
+          if ls artifacts/macOS/*mac.zip 1> /dev/null 2>&1; then
+            ZIP_PATH=$(ls artifacts/macOS/*mac.zip | grep -v intel | head -1)
+            echo "Uploading $ZIP_PATH"
+            gh release upload ${{ github.ref_name }} "$ZIP_PATH" --clobber --repo ${{ github.repository }}
           else
-            echo "No macOS ZIP found to upload"
+            echo "No macOS ARM ZIP found to upload"
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Windows Assets
+      # macOS Intel assets
+      - name: Find and Upload macOS Intel DMG
+        run: |
+          if ls artifacts/macOS/*mac-intel.dmg 1> /dev/null 2>&1; then
+            DMG_PATH=$(ls artifacts/macOS/*mac-intel.dmg | head -1)
+            echo "Uploading $DMG_PATH"
+            gh release upload ${{ github.ref_name }} "$DMG_PATH" --clobber --repo ${{ github.repository }}
+          else
+            echo "No macOS Intel DMG found to upload"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Find and Upload macOS Intel ZIP
+        run: |
+          if ls artifacts/macOS/*mac-intel.zip 1> /dev/null 2>&1; then
+            ZIP_PATH=$(ls artifacts/macOS/*mac-intel.zip | head -1)
+            echo "Uploading $ZIP_PATH"
+            gh release upload ${{ github.ref_name }} "$ZIP_PATH" --clobber --repo ${{ github.repository }}
+          else
+            echo "No macOS Intel ZIP found to upload"
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Windows
       - name: Find and Upload Windows EXE
         run: |
           if ls artifacts/Windows/*.exe 1> /dev/null 2>&1; then
             EXE_PATH=$(ls artifacts/Windows/*.exe | head -1)
-            echo "Renaming and uploading $EXE_PATH"
-            cp "$EXE_PATH" "Wing-to-LiveTrax-${{ github.ref_name }}-win.exe"
-            gh release upload ${{ github.ref_name }} "Wing-to-LiveTrax-${{ github.ref_name }}-win.exe" \
-              --clobber \
-              --repo ${{ github.repository }}
+            echo "Uploading $EXE_PATH"
+            gh release upload ${{ github.ref_name }} "$EXE_PATH" --clobber --repo ${{ github.repository }}
           else
             echo "No Windows EXE found to upload"
           fi
@@ -199,27 +246,21 @@ jobs:
         run: |
           if ls artifacts/Windows/*.zip 1> /dev/null 2>&1; then
             ZIP_PATH=$(ls artifacts/Windows/*.zip | head -1)
-            echo "Renaming and uploading $ZIP_PATH"
-            cp "$ZIP_PATH" "Wing-to-LiveTrax-${{ github.ref_name }}-win.zip"
-            gh release upload ${{ github.ref_name }} "Wing-to-LiveTrax-${{ github.ref_name }}-win.zip" \
-              --clobber \
-              --repo ${{ github.repository }}
+            echo "Uploading $ZIP_PATH"
+            gh release upload ${{ github.ref_name }} "$ZIP_PATH" --clobber --repo ${{ github.repository }}
           else
             echo "No Windows ZIP found to upload"
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Linux Assets
+      # Linux
       - name: Find and Upload Linux AppImage
         run: |
           if ls artifacts/Linux/*.AppImage 1> /dev/null 2>&1; then
             APPIMAGE_PATH=$(ls artifacts/Linux/*.AppImage | head -1)
-            echo "Renaming and uploading $APPIMAGE_PATH"
-            cp "$APPIMAGE_PATH" "Wing-to-LiveTrax-${{ github.ref_name }}-linux.AppImage"
-            gh release upload ${{ github.ref_name }} "Wing-to-LiveTrax-${{ github.ref_name }}-linux.AppImage" \
-              --clobber \
-              --repo ${{ github.repository }}
+            echo "Uploading $APPIMAGE_PATH"
+            gh release upload ${{ github.ref_name }} "$APPIMAGE_PATH" --clobber --repo ${{ github.repository }}
           else
             echo "No Linux AppImage found to upload"
           fi
@@ -230,11 +271,8 @@ jobs:
         run: |
           if ls artifacts/Linux/*.deb 1> /dev/null 2>&1; then
             DEB_PATH=$(ls artifacts/Linux/*.deb | head -1)
-            echo "Renaming and uploading $DEB_PATH"
-            cp "$DEB_PATH" "Wing-to-LiveTrax-${{ github.ref_name }}-linux.deb"
-            gh release upload ${{ github.ref_name }} "Wing-to-LiveTrax-${{ github.ref_name }}-linux.deb" \
-              --clobber \
-              --repo ${{ github.repository }}
+            echo "Uploading $DEB_PATH"
+            gh release upload ${{ github.ref_name }} "$DEB_PATH" --clobber --repo ${{ github.repository }}
           else
             echo "No Linux DEB found to upload"
           fi
