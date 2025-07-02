@@ -4,7 +4,7 @@
   "author": "Austin Ginn <austinleeginn@gmail.com>",
   "productName": "WING to LiveTrax",
   "private": true,
-  "version": "1.0.5",
+  "version": "1.0.6",
   "type": "module",
   "main": "electron/main.js",
   "scripts": {

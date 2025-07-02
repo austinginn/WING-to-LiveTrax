@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.0.6](https://github.com/austinginn/WING-to-LiveTrax/compare/v1.0.5...v1.0.6) (2025-07-02)
+
+
+### Bug Fixes
+
+* added build steps for mac intel ([36e68f6](https://github.com/austinginn/WING-to-LiveTrax/commit/36e68f6c99f45b07333fcb73da21de0263647463))
+
 ### [1.0.5](https://github.com/austinginn/WING-to-LiveTrax/compare/v1.0.4...v1.0.5) (2025-07-01)
 
 
