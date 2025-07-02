@@ -66,20 +66,18 @@ jobs:
       - name: Rename macOS DMGs
         run: |
           VERSION=${{ github.ref_name }}
-          # Original DMG (no '-mac-intel') → '-mac-arm'
-          for dmg in dist/*.dmg; do
-            if [[ "$dmg" == *mac-intel.dmg ]]; then
-              # It's already the Intel build; skip
-              continue
-            fi
-            mv "$dmg" "dist/Wing-to-LiveTrax-${VERSION}-mac-arm.dmg"
-          done
+          # Intel DMG (no "-arm64" in its name)
+          INTEL_DMG=$(ls dist/*.dmg | grep -v arm64 | head -1)
+          mv "$INTEL_DMG" "dist/Wing-to-LiveTrax-${VERSION}-mac-intel.dmg"
+          # ARM64 DMG
+          ARM_DMG=$(ls dist/*-arm64.dmg | head -1)
+          mv "$ARM_DMG" "dist/Wing-to-LiveTrax-${VERSION}-mac-arm.dmg"
 
       - name: Copy macOS DMGs to artifacts
         run: |
           mkdir -p artifacts/macOS
-          cp dist/*-mac-arm.dmg artifacts/macOS/
-          cp dist/*-mac-intel.dmg artifacts/macOS/
+          cp dist/Wing-to-LiveTrax-${{ github.ref_name }}-mac-intel.dmg artifacts/macOS/
+          cp dist/Wing-to-LiveTrax-${{ github.ref_name }}-mac-arm.dmg   artifacts/macOS/
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
@@ -94,24 +92,19 @@ jobs:
     needs: build-mac
     steps:
       - uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
-
       - name: Cache npm
         uses: actions/cache@v3
         with:
           path: C:\Users\runneradmin\AppData\Roaming\npm
           key: windows-npm-${{ hashFiles('package-lock.json') }}
-
       - name: Install dependencies
         run: npm ci
-
       - name: Build Windows (unsigned)
         run: npm run dist:win
-
       - name: Upload Windows artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -127,24 +120,19 @@ jobs:
     needs: build-mac
     steps:
       - uses: actions/checkout@v4
-
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: ${{ env.NODE_VERSION }}
-
       - name: Cache npm
         uses: actions/cache@v3
         with:
           path: ~/.npm
           key: linux-npm-${{ hashFiles('package-lock.json') }}
-
       - name: Install dependencies
         run: npm ci
-
       - name: Build Linux (unsigned)
         run: npm run dist:linux
-
       - name: Upload Linux artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -181,50 +169,62 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref_name }}
+          tag_name:     ${{ github.ref_name }}
           release_name: Release ${{ github.ref_name }}
-          body: Automated release for ${{ github.ref_name }}
-          draft: false
-          prerelease: false
+          body:         Automated release for ${{ github.ref_name }}
+          draft:        false
+          prerelease:   false
 
       - name: Upload macOS ARM DMG
         run: |
-          gh release upload ${{ github.ref_name }} artifacts/macOS/Wing-to-LiveTrax-${{ github.ref_name }}-mac-arm.dmg \
+          gh release upload \
+            ${{ github.ref_name }} \
+            artifacts/macOS/Wing-to-LiveTrax-${{ github.ref_name }}-mac-arm.dmg \
             --clobber --repo ${{ github.repository }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload macOS Intel DMG
         run: |
-          gh release upload ${{ github.ref_name }} artifacts/macOS/Wing-to-LiveTrax-${{ github.ref_name }}-mac-intel.dmg \
+          gh release upload \
+            ${{ github.ref_name }} \
+            artifacts/macOS/Wing-to-LiveTrax-${{ github.ref_name }}-mac-intel.dmg \
             --clobber --repo ${{ github.repository }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Windows EXE
         run: |
-          gh release upload ${{ github.ref_name }} dist/*.exe \
+          gh release upload \
+            ${{ github.ref_name }} \
+            dist/*.exe \
             --clobber --repo ${{ github.repository }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Windows ZIP
         run: |
-          gh release upload ${{ github.ref_name }} dist/*.zip \
+          gh release upload \
+            ${{ github.ref_name }} \
+            dist/*.zip \
             --clobber --repo ${{ github.repository }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Linux AppImage
         run: |
-          gh release upload ${{ github.ref_name }} dist/*.AppImage \
+          gh release upload \
+            ${{ github.ref_name }} \
+            dist/*.AppImage \
             --clobber --repo ${{ github.repository }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Linux DEB
         run: |
-          gh release upload ${{ github.ref_name }} dist/*.deb \
+          gh release upload \
+            ${{ github.ref_name }} \
+            dist/*.deb \
             --clobber --repo ${{ github.repository }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
